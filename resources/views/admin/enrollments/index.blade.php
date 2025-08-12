@@ -72,6 +72,12 @@
                                     <input type="text" name="note" class="border p-1 rounded text-xs" placeholder="Motif (optionnel)">
                                     <button type="submit" class="text-red-700 hover:underline">Bloquer</button>
                                 </form>
+                            @elseif($enr->status === 'blocked')
+                                <form method="POST" action="{{ route('admin.enrollments.unblock', $enr) }}" class="flex items-center gap-1">
+                                    @csrf
+                                    <input type="text" name="note" class="border p-1 rounded text-xs" placeholder="Note (optionnel)">
+                                    <button type="submit" class="text-green-700 hover:underline">Débloquer</button>
+                                </form>
                             @else
                                 —
                             @endif

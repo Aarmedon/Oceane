@@ -60,6 +60,7 @@ Route::middleware(['auth', 'gm'])
         // Inscriptions joueurs (MJ)
         Route::get('enrollments', [AdminEnrollmentController::class, 'index'])->name('enrollments.index');
         Route::post('enrollments/{enrollment}/block', [AdminEnrollmentController::class, 'block'])->name('enrollments.block');
+        Route::post('enrollments/{enrollment}/unblock', [AdminEnrollmentController::class, 'unblock'])->name('enrollments.unblock');
     });
 
 require __DIR__.'/auth.php';

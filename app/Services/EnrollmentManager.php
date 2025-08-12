@@ -108,6 +108,27 @@ class EnrollmentManager
     }
 
     /**
+     * GM unblocks a previously blocked request, returning it to pending.
+     */
+    public function unblockRequest(GameEnrollment $request, User $gm, ?string $note = null): void
+    {
+        if (!config('oceane.enrollment.allow_gm_block', true)) {
+            throw new \Exception('Le déblocage par MJ est désactivé.');
+        }
+
+        if ($request->status !== 'blocked') {
+            throw new \Exception('Seules les demandes bloquées peuvent être débloquées.');
+        }
+
+        $request->update([
+            'status' => 'pending',
+            // garder une trace du dernier MJ ayant agi
+            'processed_by' => $gm->id,
+            'note' => $note,
+        ]);
+    }
+
+    /**
      * Process all pending enrollment requests at turn resolution.
      * Should be called inside the game turn transaction.
      */

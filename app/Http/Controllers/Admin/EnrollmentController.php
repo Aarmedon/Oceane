@@ -31,4 +31,16 @@ class EnrollmentController extends Controller
         return redirect()->route('admin.enrollments.index')
             ->with('success', "Demande #{$enrollment->id} bloquée.");
     }
+
+    public function unblock(Request $request, GameEnrollment $enrollment, EnrollmentManager $manager)
+    {
+        $data = $request->validate([
+            'note' => ['nullable','string','max:1000'],
+        ]);
+
+        $manager->unblockRequest($enrollment, $request->user(), $data['note'] ?? null);
+
+        return redirect()->route('admin.enrollments.index')
+            ->with('success', "Demande #{$enrollment->id} débloquée (retour à 'pending').");
+    }
 }
