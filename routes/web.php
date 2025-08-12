@@ -7,6 +7,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\Admin\GameAdminController;
 use App\Http\Controllers\Admin\RaceController;
 use App\Http\Controllers\Admin\FleetController;
+use App\Http\Controllers\EnrollmentController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -25,6 +26,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Inscriptions / départs
+    Route::prefix('enrollment')->as('enrollment.')->group(function () {
+        Route::post('/join', [EnrollmentController::class, 'requestJoin'])->name('join');
+        Route::post('/leave', [EnrollmentController::class, 'requestLeave'])->name('leave');
+    });
 });
 
 // Administration MJ (protégé par auth + gm)
