@@ -15,6 +15,7 @@ class GameCycleManager
     protected $fleetManager;
     protected $commandantManager;
     protected $technologyManager;
+    protected $enrollmentManager;
     protected $currentTurn;
 
     /**
@@ -23,17 +24,20 @@ class GameCycleManager
     public function __construct(
         FleetManager $fleetManager,
         CommandantManager $commandantManager,
-        TechnologyManager $technologyManager
+        TechnologyManager $technologyManager,
+        EnrollmentManager $enrollmentManager
     ) {
         $this->fleetManager = $fleetManager;
         $this->commandantManager = $commandantManager;
         $this->technologyManager = $technologyManager;
+        $this->enrollmentManager = $enrollmentManager;
         // Charger l'état de jeu (tour courant) depuis la base
         $state = GameState::query()->first();
         if (!$state) {
             $state = GameState::create([
                 'current_turn' => 1,
                 'last_resolved_at' => null,
+                'next_turn_at' => now()->addHours(config('oceane.game.hours_between_turns', 24)),
             ]);
         }
         $this->currentTurn = (int) $state->current_turn;
@@ -70,10 +74,13 @@ class GameCycleManager
             // 4. Mise à jour des budgets pour tous les commandants
             $this->updateAllBudgets();
             
-            // 5. Génération des rapports de tour
+            // 5. Traitement des demandes d'inscription/départ (avant les rapports pour figurer dans les rapports du tour)
+            $this->enrollmentManager->processPendingAtTurn($this->currentTurn);
+
+            // 6. Génération des rapports de tour
             $this->generateTurnReports();
             
-            // 6. Mise à jour du numéro de tour
+            // 7. Mise à jour du numéro de tour
             $this->incrementTurnNumber();
             
             DB::commit();
@@ -353,11 +360,13 @@ class GameCycleManager
             $state = GameState::create([
                 'current_turn' => 1,
                 'last_resolved_at' => null,
+                'next_turn_at' => now()->addHours(config('oceane.game.hours_between_turns', 24)),
             ]);
         }
         $newTurn = ((int) $this->currentTurn) + 1;
         $state->current_turn = $newTurn;
         $state->last_resolved_at = now();
+        $state->next_turn_at = now()->addHours(config('oceane.game.hours_between_turns', 24));
         $state->save();
         
         $this->currentTurn = $newTurn;

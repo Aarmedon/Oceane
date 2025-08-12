@@ -173,4 +173,28 @@ return [
         // Liste d'emails autorisés à accéder à l'interface MJ (séparés par des virgules dans .env)
         'gamemasters_emails' => array_filter(array_map('trim', explode(',', env('GAMEMASTERS', '')))),
     ],
+
+    // Configuration des inscriptions/joueurs
+    'enrollment' => [
+        // Fenêtre de gel avant la résolution du tour (en minutes)
+        'freeze_window_minutes' => env('ENROLLMENT_FREEZE_MINUTES', 60),
+
+        // Approbation automatique des demandes au moment de la résolution
+        'auto_approve' => env('ENROLLMENT_AUTO_APPROVE', true),
+
+        // Politique par défaut lors du départ d'un joueur
+        // ex: 'neutral_takeover' (transfert au commandant neutre)
+        'default_leave_policy' => env('LEAVE_POLICY', 'neutral_takeover'),
+
+        // Autoriser les MJ à bloquer une demande
+        'allow_gm_block' => env('ENROLLMENT_ALLOW_GM_BLOCK', true),
+
+        // Paramètres du commandant neutre
+        'neutral' => [
+            'user_email' => env('NEUTRAL_USER_EMAIL', 'neutral@oceane.local'),
+            'user_name' => env('NEUTRAL_USER_NAME', 'Neutral'),
+            'commander_name' => env('NEUTRAL_COMMANDER_NAME', 'Neutral'),
+            'race_id' => (int) env('NEUTRAL_RACE_ID', 1),
+        ],
+    ],
 ];
