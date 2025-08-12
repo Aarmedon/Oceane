@@ -1,0 +1,577 @@
+/* Styles pour les rapports de jeu */
+
+/* Styles pour les événements */
+.event-card {
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.event-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.event-importance-1 { border-left: 4px solid #6c757d; }
+.event-importance-2 { border-left: 4px solid #0dcaf0; }
+.event-importance-3 { border-left: 4px solid #ffc107; }
+.event-importance-4 { border-left: 4px solid #fd7e14; }
+.event-importance-5 { border-left: 4px solid #dc3545; }
+
+.event-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 1.2rem;
+}
+
+.event-unread {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #0dcaf0;
+}
+
+.filter-btn.active {
+    border-color: #0dcaf0 !important;
+    box-shadow: 0 0 0 0.2rem rgba(13, 202, 240, 0.25);
+}
+
+/* Styles pour la timeline d'événements */
+.event-timeline {
+    position: relative;
+    padding-left: 20px;
+}
+
+.event-timeline:before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 2px;
+    background-color: #495057;
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 1.5rem;
+}
+
+.timeline-item:last-child {
+    padding-bottom: 0;
+}
+
+.timeline-item:before {
+    content: '';
+    position: absolute;
+    left: -24px;
+    top: 4px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #6c757d;
+}
+
+.timeline-item.important:before {
+    background-color: #dc3545;
+}
+
+/* Styles généraux */
+.report-header {
+    padding: 1rem;
+    border-radius: 0.25rem;
+    background-color: rgba(255, 255, 255, 0.05);
+    margin-bottom: 1.5rem;
+}
+
+.report-summary {
+    font-size: 1.1rem;
+    color: #e9ecef;
+    line-height: 1.6;
+}
+
+.report-section {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.report-section:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
+}
+
+.report-section h5 {
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Styles pour les tableaux de rapport */
+.table-dark {
+    background-color: #212529;
+    color: #e9ecef;
+}
+
+.table-dark thead th {
+    background-color: #343a40;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    font-weight: 500;
+}
+
+.table-dark tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.table-dark tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Styles pour les barres de progression */
+.progress {
+    background-color: #343a40;
+    height: 10px;
+    border-radius: 5px;
+    margin-bottom: 0.5rem;
+}
+
+.progress-bar {
+    border-radius: 5px;
+}
+
+/* Styles pour les cartes de rapport */
+.card {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+}
+
+.card-header {
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Styles pour les badges */
+.badge {
+    padding: 0.4em 0.6em;
+    font-weight: 500;
+}
+
+/* Styles pour les alertes */
+.alert {
+    border-radius: 0.25rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Styles pour les icônes */
+.fas {
+    margin-right: 0.25rem;
+}
+
+/* Styles pour les rapports de combat */
+.combat-timeline {
+    border-left: 2px solid #495057;
+    padding-left: 1rem;
+    margin-left: 1rem;
+}
+
+.combat-round {
+    margin-bottom: 1.5rem;
+}
+
+.combat-round:last-child {
+    margin-bottom: 0;
+}
+
+.round-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    background-color: #343a40;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.round-header:hover {
+    background-color: #495057;
+}
+
+.round-header h6 {
+    margin-bottom: 0;
+}
+
+.round-toggle {
+    transition: transform 0.2s ease;
+}
+
+.round-header[aria-expanded="true"] .round-toggle {
+    transform: rotate(180deg);
+}
+
+.round-content {
+    padding: 1rem;
+    background-color: rgba(255, 255, 255, 0.02);
+    border-radius: 0 0 0.25rem 0.25rem;
+    margin-top: 0.25rem;
+}
+
+.combat-action {
+    display: flex;
+    margin-bottom: 0.75rem;
+    position: relative;
+}
+
+.combat-action:last-child {
+    margin-bottom: 0;
+}
+
+.combat-action:before {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #495057;
+    left: -1.5rem;
+    top: 0.5rem;
+}
+
+.ally-action:before {
+    background-color: #0d6efd;
+}
+
+.enemy-action:before {
+    background-color: #dc3545;
+}
+
+.action-time {
+    min-width: 60px;
+    color: #6c757d;
+    font-size: 0.875rem;
+    padding-top: 0.25rem;
+}
+
+.action-content {
+    flex-grow: 1;
+    background-color: #2c3034;
+    border-radius: 0.25rem;
+    padding: 0.75rem;
+    position: relative;
+}
+
+.ally-action .action-content {
+    border-left: 3px solid #0d6efd;
+}
+
+.enemy-action .action-content {
+    border-left: 3px solid #dc3545;
+}
+
+.action-header {
+    margin-bottom: 0.5rem;
+}
+
+.action-description {
+    color: #adb5bd;
+}
+
+.round-summary {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Styles pour les participants du combat */
+.tech-mini-icon {
+    width: 24px;
+    height: 24px;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 0.5rem;
+}
+
+/* Styles pour les barres de vie et bouclier */
+.hull-bar, .shield-bar {
+    height: 4px;
+    border-radius: 2px;
+    margin-bottom: 2px;
+}
+
+.hull-bar {
+    background-color: #dc3545;
+}
+
+.shield-bar {
+    background-color: #0dcaf0;
+}
+
+/* Styles pour les rapports financiers */
+.financial-card {
+    height: 100%;
+}
+
+.financial-value {
+    font-size: 1.25rem;
+    font-weight: 500;
+}
+
+.financial-label {
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.financial-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+}
+
+.financial-trend {
+    font-size: 0.875rem;
+}
+
+.trend-up {
+    color: #198754;
+}
+
+.trend-down {
+    color: #dc3545;
+}
+
+/* Styles pour les activités planétaires */
+.planet-activity {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    border-radius: 0.25rem;
+    background-color: rgba(255, 255, 255, 0.02);
+    margin-bottom: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.planet-activity:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.planet-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 1rem;
+    background-size: cover;
+    background-position: center;
+}
+
+.planet-info {
+    flex-grow: 1;
+}
+
+.planet-name {
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.planet-details {
+    font-size: 0.875rem;
+    color: #adb5bd;
+}
+
+/* Styles pour les activités de flotte */
+.fleet-activity {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    border-radius: 0.25rem;
+    background-color: rgba(255, 255, 255, 0.02);
+    margin-bottom: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.fleet-activity:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.fleet-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 1rem;
+    background-color: #343a40;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.fleet-info {
+    flex-grow: 1;
+}
+
+.fleet-name {
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.fleet-details {
+    font-size: 0.875rem;
+    color: #adb5bd;
+}
+
+/* Styles pour les activités diplomatiques */
+.diplomatic-activity {
+    padding: 0.75rem;
+    border-radius: 0.25rem;
+    background-color: rgba(255, 255, 255, 0.02);
+    margin-bottom: 0.5rem;
+    border-left: 3px solid transparent;
+}
+
+.diplomatic-activity.alliance {
+    border-left-color: #198754;
+}
+
+.diplomatic-activity.peace {
+    border-left-color: #0dcaf0;
+}
+
+.diplomatic-activity.trade {
+    border-left-color: #ffc107;
+}
+
+.diplomatic-activity.war {
+    border-left-color: #dc3545;
+}
+
+.diplomatic-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.diplomatic-message {
+    font-style: italic;
+    color: #adb5bd;
+    padding: 0.5rem;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 0.25rem;
+}
+
+/* Styles pour les résultats de combat */
+.combat-result {
+    text-align: center;
+    padding: 1.5rem;
+    border-radius: 0.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.result-victory {
+    background-color: rgba(25, 135, 84, 0.1);
+    border: 1px solid rgba(25, 135, 84, 0.2);
+}
+
+.result-defeat {
+    background-color: rgba(220, 53, 69, 0.1);
+    border: 1px solid rgba(220, 53, 69, 0.2);
+}
+
+.result-draw {
+    background-color: rgba(255, 193, 7, 0.1);
+    border: 1px solid rgba(255, 193, 7, 0.2);
+}
+
+.result-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.result-title {
+    font-size: 1.5rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.result-description {
+    color: #adb5bd;
+}
+
+/* Styles pour les récompenses et pertes */
+.rewards-list, .losses-list {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.rewards-list li, .losses-list li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.rewards-list li:last-child, .losses-list li:last-child {
+    border-bottom: none;
+}
+
+.rewards-list li:before {
+    content: '\f091';
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    margin-right: 0.5rem;
+    color: #ffc107;
+}
+
+.losses-list li:before {
+    content: '\f057';
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    margin-right: 0.5rem;
+    color: #dc3545;
+}
+
+/* Styles pour l'impression */
+@media print {
+    body {
+        background-color: #fff !important;
+        color: #000 !important;
+    }
+    
+    .card {
+        border: 1px solid #ddd !important;
+        box-shadow: none !important;
+    }
+    
+    .card-header {
+        background-color: #f8f9fa !important;
+        color: #000 !important;
+    }
+    
+    .table-dark {
+        background-color: #fff !important;
+        color: #000 !important;
+    }
+    
+    .table-dark th, .table-dark td {
+        border-color: #ddd !important;
+    }
+    
+    .badge {
+        border: 1px solid #000 !important;
+        color: #000 !important;
+        background-color: transparent !important;
+    }
+    
+    .btn {
+        display: none !important;
+    }
+}

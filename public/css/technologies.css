@@ -1,0 +1,230 @@
+.tech-tree-container {
+    width: 100%;
+    overflow-x: auto;
+    margin-bottom: 20px;
+    padding: 20px 0;
+}
+
+.tech-tree {
+    position: relative;
+    min-width: 800px;
+    min-height: 400px;
+    padding: 20px;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+}
+
+.tech-node {
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background-color: #1a202c;
+    border: 2px solid #2d3748;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 2;
+}
+
+.tech-node:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+    z-index: 10;
+}
+
+.tech-node.researched {
+    background-color: #2c5282;
+    border-color: #4299e1;
+    box-shadow: 0 0 10px rgba(66, 153, 225, 0.5);
+}
+
+.tech-node.researchable {
+    background-color: #2a4365;
+    border-color: #63b3ed;
+}
+
+.tech-node.locked {
+    background-color: #1a202c;
+    border-color: #4a5568;
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.tech-node.current-research {
+    background-color: #2b6cb0;
+    border-color: #90cdf4;
+    animation: pulse 2s infinite;
+    box-shadow: 0 0 15px rgba(144, 205, 244, 0.8);
+}
+
+.tech-node-icon {
+    width: 40px;
+    height: 40px;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    margin-bottom: 5px;
+}
+
+.tech-node-name {
+    font-size: 11px;
+    font-weight: bold;
+    color: white;
+    margin-bottom: 2px;
+}
+
+.tech-node-level {
+    font-size: 10px;
+    color: #a0aec0;
+}
+
+.tech-connection {
+    position: absolute;
+    height: 2px;
+    background-color: #4a5568;
+    transform-origin: 0 0;
+    z-index: 1;
+}
+
+.tech-connection.researched {
+    background-color: #4299e1;
+    box-shadow: 0 0 5px rgba(66, 153, 225, 0.5);
+}
+
+.tech-filter-group {
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.tech-filter-group .btn {
+    margin-right: 5px;
+    margin-bottom: 5px;
+}
+
+.tech-card {
+    transition: all 0.3s ease;
+}
+
+.tech-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+}
+
+.tech-card.tech-locked {
+    opacity: 0.7;
+}
+
+.tech-icon {
+    width: 100%;
+    height: 80px;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+.tech-prerequisite {
+    padding: 5px;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    color: #a0aec0;
+}
+
+.tech-benefits {
+    padding: 5px;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    color: #a0aec0;
+}
+
+/* Catégories de technologies */
+.tech-node[data-category="propulsion"] {
+    border-color: #48bb78;
+}
+
+.tech-node[data-category="weapons"] {
+    border-color: #f56565;
+}
+
+.tech-node[data-category="shields"] {
+    border-color: #4299e1;
+}
+
+.tech-node[data-category="construction"] {
+    border-color: #ed8936;
+}
+
+.tech-node[data-category="biology"] {
+    border-color: #9f7aea;
+}
+
+.tech-node[data-category="economy"] {
+    border-color: #ecc94b;
+}
+
+.tech-node[data-category="special"] {
+    border-color: #f687b3;
+}
+
+.tech-node.researched[data-category="propulsion"] {
+    background-color: rgba(72, 187, 120, 0.3);
+}
+
+.tech-node.researched[data-category="weapons"] {
+    background-color: rgba(245, 101, 101, 0.3);
+}
+
+.tech-node.researched[data-category="shields"] {
+    background-color: rgba(66, 153, 225, 0.3);
+}
+
+.tech-node.researched[data-category="construction"] {
+    background-color: rgba(237, 137, 54, 0.3);
+}
+
+.tech-node.researched[data-category="biology"] {
+    background-color: rgba(159, 122, 234, 0.3);
+}
+
+.tech-node.researched[data-category="economy"] {
+    background-color: rgba(236, 201, 75, 0.3);
+}
+
+.tech-node.researched[data-category="special"] {
+    background-color: rgba(246, 135, 179, 0.3);
+}
+
+/* Animation pour la recherche en cours */
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(144, 205, 244, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(144, 205, 244, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(144, 205, 244, 0);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .tech-filter-group {
+        overflow-x: auto;
+        white-space: nowrap;
+        flex-wrap: nowrap;
+        padding-bottom: 10px;
+    }
+    
+    .tech-filter-group .btn {
+        flex-shrink: 0;
+    }
+}

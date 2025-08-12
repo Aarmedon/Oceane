@@ -1,0 +1,319 @@
+/* Styles pour le centre de commandement */
+
+/* Styles généraux */
+.card {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+}
+
+.card-header {
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Styles pour les onglets */
+.nav-tabs {
+    border-bottom: 1px solid #343a40;
+}
+
+.nav-tabs .nav-link {
+    color: #adb5bd;
+    border: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    padding: 0.75rem 1rem;
+    transition: all 0.2s ease;
+}
+
+.nav-tabs .nav-link:hover {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: transparent;
+}
+
+.nav-tabs .nav-link.active {
+    color: #fff;
+    background-color: transparent;
+    border-bottom: 2px solid #0d6efd;
+}
+
+/* Styles pour les tableaux */
+.table-dark {
+    background-color: #212529;
+    color: #e9ecef;
+}
+
+.table-dark thead th {
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    background-color: #343a40;
+    font-weight: 500;
+}
+
+.table-dark tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.table-dark tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Styles pour les badges */
+.badge {
+    padding: 0.4em 0.6em;
+    font-weight: 500;
+}
+
+/* Styles pour les boutons */
+.btn-link {
+    color: #0d6efd;
+    text-decoration: none;
+    padding: 0;
+}
+
+.btn-link:hover {
+    color: #0a58ca;
+    text-decoration: underline;
+}
+
+/* Styles pour les listes de rapports */
+.reports-list {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.reports-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.reports-list::-webkit-scrollbar-track {
+    background: #343a40;
+    border-radius: 4px;
+}
+
+.reports-list::-webkit-scrollbar-thumb {
+    background-color: #495057;
+    border-radius: 4px;
+}
+
+.reports-list .list-group-item {
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.reports-list .list-group-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.reports-list .list-group-item.unread {
+    border-left: 3px solid #ffc107;
+}
+
+/* Animation pour les nouveaux ordres */
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(13, 110, 253, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(13, 110, 253, 0);
+    }
+}
+
+.new-order {
+    animation: pulse 2s infinite;
+}
+
+/* Styles pour les modaux */
+.modal-content {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Styles pour les détails d'ordre */
+.order-details {
+    background-color: #2c3034;
+    border-radius: 0.25rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.order-details-title {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: #fff;
+}
+
+.order-details-content {
+    color: #adb5bd;
+}
+
+/* Styles pour les états des ordres */
+.order-status {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+.order-status.pending {
+    background-color: #0d6efd;
+}
+
+.order-status.processed {
+    background-color: #198754;
+}
+
+.order-status.failed {
+    background-color: #dc3545;
+}
+
+/* Styles pour les tooltips */
+.tooltip-inner {
+    background-color: #343a40;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.2);
+}
+
+.bs-tooltip-auto[data-popper-placement^=top] .tooltip-arrow::before, 
+.bs-tooltip-top .tooltip-arrow::before {
+    border-top-color: #343a40;
+}
+
+/* Styles pour les animations de chargement */
+.spinner-border {
+    width: 2rem;
+    height: 2rem;
+}
+
+/* Styles pour les alertes */
+.alert {
+    border-radius: 0.25rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Styles pour les actions d'ordre */
+.order-actions {
+    white-space: nowrap;
+}
+
+/* Styles pour les icônes */
+.fas {
+    margin-right: 0.25rem;
+}
+
+/* Styles pour les boutons d'action */
+.action-btn {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+    transform: scale(1.1);
+}
+
+.action-btn .fas {
+    margin-right: 0;
+}
+
+/* Styles pour les éléments de liste des ordres */
+.order-list-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: background-color 0.2s ease;
+}
+
+.order-list-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.order-list-item:last-child {
+    border-bottom: none;
+}
+
+.order-list-item .order-type {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+}
+
+.order-list-item .order-info {
+    flex-grow: 1;
+}
+
+.order-list-item .order-actions {
+    margin-left: 1rem;
+}
+
+/* Styles pour les formulaires */
+.form-control, .form-select {
+    background-color: #2c3034;
+    border: 1px solid #495057;
+    color: #e9ecef;
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: #2c3034;
+    border-color: #0d6efd;
+    color: #e9ecef;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Styles pour les éléments de formulaire désactivés */
+.form-control:disabled, .form-select:disabled {
+    background-color: #343a40;
+    opacity: 0.6;
+}
+
+/* Styles pour les étiquettes de formulaire */
+.form-label {
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+/* Styles pour les groupes de formulaires */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+/* Styles pour les boutons de soumission */
+.submit-btn {
+    min-width: 120px;
+}
+
+/* Styles pour les messages d'aide */
+.form-text {
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+/* Styles pour les messages d'erreur */
+.invalid-feedback {
+    color: #dc3545;
+    font-size: 0.875rem;
+}
+
+/* Styles pour les messages de succès */
+.valid-feedback {
+    color: #198754;
+    font-size: 0.875rem;
+}
