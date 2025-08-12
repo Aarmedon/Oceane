@@ -45,6 +45,9 @@
                     <a href="{{ route('admin.fleets.index') }}" class="btn btn-outline-light">
                         <i class="fas fa-rocket"></i> Flottes
                     </a>
+                    <a href="{{ route('admin.enrollments.index') }}" class="btn btn-outline-light">
+                        <i class="fas fa-user-plus"></i> Inscriptions
+                    </a>
                     <a href="{{ route('admin.univers') }}" class="btn btn-outline-light">
                         <i class="fas fa-globe"></i> Univers (vue)
                     </a>

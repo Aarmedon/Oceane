@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\GameAdminController;
 use App\Http\Controllers\Admin\RaceController;
 use App\Http\Controllers\Admin\FleetController;
 use App\Http\Controllers\EnrollmentController;
+use App\Http\Controllers\Admin\EnrollmentController as AdminEnrollmentController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -55,6 +56,10 @@ Route::middleware(['auth', 'gm'])
         Route::post('fleets/{fleet}/cancel-deletion', [FleetController::class, 'cancelDeletion'])->name('fleets.cancel-deletion');
         Route::post('fleets/{fleet}/composition/add', [FleetController::class, 'addComposition'])->name('fleets.composition.add');
         Route::post('fleets/{fleet}/composition/remove', [FleetController::class, 'removeComposition'])->name('fleets.composition.remove');
+
+        // Inscriptions joueurs (MJ)
+        Route::get('enrollments', [AdminEnrollmentController::class, 'index'])->name('enrollments.index');
+        Route::post('enrollments/{enrollment}/block', [AdminEnrollmentController::class, 'block'])->name('enrollments.block');
     });
 
 require __DIR__.'/auth.php';

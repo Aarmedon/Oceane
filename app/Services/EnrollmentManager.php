@@ -39,6 +39,14 @@ class EnrollmentManager
             throw new \Exception('Vous avez déjà un commandant.');
         }
 
+        $existing = GameEnrollment::where('user_id', $user->id)
+            ->where('type', 'join')
+            ->where('status', 'pending')
+            ->exists();
+        if ($existing) {
+            throw new \Exception('Une demande d\'inscription est déjà en attente.');
+        }
+
         return GameEnrollment::create([
             'user_id' => $user->id,
             'type' => 'join',
@@ -60,6 +68,14 @@ class EnrollmentManager
         $commander = $user->commanders()->first();
         if (!$commander) {
             throw new \Exception('Aucun commandant associé à cet utilisateur.');
+        }
+
+        $existing = GameEnrollment::where('user_id', $user->id)
+            ->where('type', 'leave')
+            ->where('status', 'pending')
+            ->exists();
+        if ($existing) {
+            throw new \Exception('Une demande de départ est déjà en attente.');
         }
 
         return GameEnrollment::create([

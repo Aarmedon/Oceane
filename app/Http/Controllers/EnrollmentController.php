@@ -9,7 +9,11 @@ class EnrollmentController extends Controller
 {
     public function requestJoin(Request $request, EnrollmentManager $manager)
     {
-        $payload = $request->only(['commander_name', 'race_id', 'description']);
+        $payload = $request->validate([
+            'commander_name' => ['required','string','max:255'],
+            'race_id' => ['nullable','integer','exists:races,id'],
+            'description' => ['nullable','string','max:1000'],
+        ]);
         try {
             $manager->requestJoin($request->user(), $payload);
             return back()->with('status', "Demande d'inscription enregistrée. Elle sera traitée lors de la résolution du prochain tour.");
@@ -20,7 +24,9 @@ class EnrollmentController extends Controller
 
     public function requestLeave(Request $request, EnrollmentManager $manager)
     {
-        $payload = $request->only(['note']);
+        $payload = $request->validate([
+            'note' => ['nullable','string','max:1000'],
+        ]);
         try {
             $manager->requestLeave($request->user(), $payload);
             return back()->with('status', 'Demande de départ enregistrée. Elle sera traitée lors de la résolution du prochain tour.');
