@@ -58,12 +58,12 @@
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" href="{{ route('game.orders') }}">
+                                    <a class="nav-link" href="{{ route('game.orders.index') }}">
                                         <i class="fas fa-tasks"></i> Ordres
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" href="{{ route('game.reports') }}">
+                                    <a class="nav-link" href="{{ route('game.reports.index') }}">
                                         <i class="fas fa-file-alt"></i> Rapports
                                         @if(Auth::user()->commanders()->first()->turnReports()->where('is_read', false)->count() > 0)
                                             <span class="badge bg-danger">

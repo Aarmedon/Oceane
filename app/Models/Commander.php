@@ -106,4 +106,29 @@ class Commander extends Model
     {
         return $this->belongsTo(StarSystem::class, 'capital_system_id')->withDefault();
     }
+
+    /**
+     * Get the turn reports for this commander
+     */
+    public function turnReports(): HasMany
+    {
+        return $this->hasMany(TurnReport::class);
+    }
+
+    /**
+     * Get the combat reports for this commander
+     */
+    public function combatReports(): HasMany
+    {
+        return $this->hasMany(CombatReport::class);
+    }
+
+    /**
+     * Query game events involving this commander via JSON filtering on involved_commanders.
+     * Note: This returns a builder, not a traditional Eloquent relation, since there is no FK.
+     */
+    public function gameEvents()
+    {
+        return GameEvent::query()->whereJsonContains('involved_commanders', (int) $this->id);
+    }
 }

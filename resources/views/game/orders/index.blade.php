@@ -273,7 +273,7 @@
                             @if($turnReports->count() > 0)
                                 <div class="list-group reports-list">
                                     @foreach($turnReports as $report)
-                                        <a href="{{ route('game.reports.turn', $report->id) }}" class="list-group-item list-group-item-action bg-dark text-light border-secondary {{ $report->is_read ? '' : 'unread' }}">
+                                        <a href="{{ route('game.reports.turns.show', $report->id) }}" class="list-group-item list-group-item-action bg-dark text-light border-secondary {{ $report->is_read ? '' : 'unread' }}">
                                             <div class="d-flex w-100 justify-content-between">
                                                 <h6 class="mb-1">
                                                     @if(!$report->is_read)
@@ -299,7 +299,7 @@
                             @if($combatReports->count() > 0)
                                 <div class="list-group reports-list">
                                     @foreach($combatReports as $report)
-                                        <a href="{{ route('game.reports.combat', $report->id) }}" class="list-group-item list-group-item-action bg-dark text-light border-secondary">
+                                        <a href="{{ route('game.reports.combats.show', $report->id) }}" class="list-group-item list-group-item-action bg-dark text-light border-secondary">
                                             <div class="d-flex w-100 justify-content-between">
                                                 <h6 class="mb-1">
                                                     Combat dans {{ $report->location }}
@@ -331,7 +331,7 @@
                             @if($events->count() > 0)
                                 <div class="list-group reports-list">
                                     @foreach($events as $event)
-                                        <a href="{{ route('game.reports.event', $event->id) }}" class="list-group-item list-group-item-action bg-dark text-light border-secondary">
+                                        <a href="{{ route('game.reports.events.show', $event->id) }}" class="list-group-item list-group-item-action bg-dark text-light border-secondary">
                                             <div class="d-flex w-100 justify-content-between">
                                                 <h6 class="mb-1">
                                                     @switch($event->event_type)

@@ -206,7 +206,7 @@ function markEventAsRead(eventId) {
     
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     
-    fetch(`/game/reports/mark_read/event/${eventId}`, {
+    fetch(`/game/reports/events/${eventId}/read`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

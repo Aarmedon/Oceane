@@ -11,6 +11,7 @@
     .event-importance-4 { border-left: 4px solid #fd7e14; }
     .event-importance-5 { border-left: 4px solid #dc3545; }
     
+</style>
 @endpush
 
 @section('content')
@@ -21,7 +22,7 @@
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{{ route('game.dashboard') }}">Tableau de bord</a></li>
                     <li class="breadcrumb-item"><a href="{{ route('game.orders.index') }}">Centre de Commandement</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('game.reports.events') }}">Événements</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('game.reports.events.index') }}">Événements</a></li>
                     <li class="breadcrumb-item active" aria-current="page">{{ $event->title }}</li>
                 </ol>
             </nav>
@@ -37,10 +38,7 @@
                         <span class="badge {{ $event->getBadgeClass() }} ms-2">{{ $event->getImportanceText() }}</span>
                     </h4>
                     <div>
-                        <a href="{{ route('game.reports.download', ['type' => 'event', 'id' => $event->id]) }}" class="btn btn-sm btn-primary">
-                            <i class="fas fa-download"></i> Télécharger
-                        </a>
-                        <a href="{{ route('game.reports.events') }}" class="btn btn-sm btn-secondary ms-2">
+                        <a href="{{ route('game.reports.events.index') }}" class="btn btn-sm btn-secondary ms-2">
                             <i class="fas fa-arrow-left"></i> Retour
                         </a>
                     </div>
@@ -285,7 +283,7 @@
                 </div>
                 
                 <div class="card-footer text-end">
-                    <a href="{{ route('game.reports.events') }}" class="btn btn-secondary">
+                    <a href="{{ route('game.reports.events.index') }}" class="btn btn-secondary">
                         <i class="fas fa-arrow-left"></i> Retour aux événements
                     </a>
                 </div>

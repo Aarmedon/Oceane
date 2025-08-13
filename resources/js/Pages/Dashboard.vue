@@ -46,6 +46,14 @@ const submitLeave = () => {
                         
                         <!-- Player Enrollment Widgets -->
                         <div class="mt-6 space-y-6">
+                            <!-- Pending notices -->
+                            <div v-if="$page.props.player && $page.props.player.pendingJoin" class="rounded border border-blue-600 bg-blue-50 p-3 text-blue-800">
+                                Votre demande d'inscription est en attente. Elle sera traitée lors de la résolution du prochain tour.
+                            </div>
+                            <div v-if="$page.props.player && $page.props.player.pendingLeave" class="rounded border border-blue-600 bg-blue-50 p-3 text-blue-800">
+                                Votre demande de départ est en attente. Elle sera traitée lors de la résolution du prochain tour.
+                            </div>
+
                             <!-- Join form -->
                             <div v-if="$page.props.player && !$page.props.player.hasCommander && !$page.props.player.pendingJoin">
                                 <div v-if="$page.props.player.freezeWindowActive" class="mb-2 rounded border border-amber-600 bg-amber-50 p-2 text-amber-800">

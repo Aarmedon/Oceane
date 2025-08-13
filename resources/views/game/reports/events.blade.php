@@ -94,7 +94,7 @@
                                  data-turn="{{ $event->turn_number }}"
                                  data-date="{{ $event->created_at->format('Y-m-d') }}">
                                 <div class="card bg-dark border-secondary event-card event-importance-{{ $event->importance }}" 
-                                     onclick="window.location.href='{{ route('game.reports.event', $event->id) }}'">
+                                     onclick="window.location.href='{{ route('game.reports.events.show', $event->id) }}'">
                                     @if(!$event->read)
                                         <div class="event-unread"></div>
                                     @endif

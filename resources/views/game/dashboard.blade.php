@@ -39,7 +39,7 @@
                                 <li><strong><i class="fas fa-rocket"></i> Flottes:</strong> {{ $fleetsCount }}</li>
                                 <li>
                                     <strong><i class="fas fa-file-alt"></i> Rapports:</strong> 
-                                    <a href="{{ route('game.reports') }}">
+                                    <a href="{{ route('game.reports.index') }}">
                                         {{ $unreadReportsCount }} non lus
                                         @if($unreadReportsCount > 0)
                                             <span class="badge bg-danger">{{ $unreadReportsCount }}</span>
@@ -70,13 +70,13 @@
             <!-- Derniers rapports -->
             <div class="card bg-dark border-secondary mb-4">
                 <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-newspaper"></i> Derniers rapports</h5>
-                    <a href="{{ route('game.reports') }}" class="btn btn-dark btn-sm">Voir tous</a>
+                    <h5 class="mb-0"><i class="fas a-newspaper"></i> Derniers rapports</h5>
+                    <a href="{{ route('game.reports.index') }}" class="btn btn-dark btn-sm">Voir tous</a>
                 </div>
                 <div class="card-body p-0">
                     <div class="list-group list-group-flush">
                         @forelse($turnReports as $report)
-                            <a href="{{ route('game.reports.show', $report->id) }}" class="list-group-item list-group-item-action bg-dark text-light border-secondary d-flex justify-content-between align-items-center">
+                            <a href="{{ route('game.reports.turns.show', $report->id) }}" class="list-group-item list-group-item-action bg-dark text-light border-secondary d-flex justify-content-between align-items-center">
                                 <div>
                                     <h6 class="mb-1">Tour {{ $report->turn_number }}</h6>
                                     <p class="mb-1 text-truncate" style="max-width: 500px;">{{ Str::limit($report->summary, 100) }}</p>
@@ -134,7 +134,7 @@
                         <a href="{{ route('game.technologies') }}" class="btn btn-info">
                             <i class="fas fa-microchip"></i> Rechercher des technologies
                         </a>
-                        <a href="{{ route('game.orders') }}" class="btn btn-warning">
+                        <a href="{{ route('game.orders.index') }}" class="btn btn-warning">
                             <i class="fas fa-tasks"></i> Gérer mes ordres
                         </a>
                         @if($commander->alliance)
@@ -154,7 +154,7 @@
             <div class="card bg-dark border-secondary mb-4">
                 <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="fas fa-clock"></i> Ordres en attente</h5>
-                    <a href="{{ route('game.orders') }}" class="btn btn-dark btn-sm">Tous les ordres</a>
+                    <a href="{{ route('game.orders.index') }}" class="btn btn-dark btn-sm">Tous les ordres</a>
                 </div>
                 <div class="card-body p-0">
                     <div class="list-group list-group-flush">

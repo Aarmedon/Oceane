@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\TurnReport;
 use App\Models\CombatReport;
 use App\Models\GameEvent;
+use App\Models\GameEventRead;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Carbon;
@@ -32,10 +33,19 @@ class ReportController extends Controller
         // Récupérer les rapports non lus
         $unreadTurnReports = $commander->turnReports()->where('is_read', false)->count();
         $unreadCombatReports = $commander->combatReports()->where('is_read', false)->count();
-        $unreadEvents = $commander->gameEvents()->where('is_read', false)->count();
+        $unreadEvents = $commander->gameEvents()
+            ->whereDoesntHave('reads', function ($q) use ($commander) {
+                $q->where('commander_id', $commander->id);
+            })
+            ->count();
         
-        // Récupérer les événements importants
-        $importantEventsCount = $commander->gameEvents()->where('importance', '>=', 4)->count();
+        // Récupérer les événements importants (importance explicite ou importance par défaut du type)
+        $importantEventsCount = $commander->gameEvents()
+            ->where(function ($q) {
+                $q->where('event_data->importance', '>=', 4)
+                  ->orWhereIn('event_type', ['space_combat', 'planet_colonization']);
+            })
+            ->count();
         
         // Récupérer les derniers rapports pour afficher leur date
         $lastTurnReport = $commander->turnReports()->latest('created_at')->first();
@@ -44,6 +54,7 @@ class ReportController extends Controller
         
         // Récupérer les événements récents pour l'affichage rapide
         $recentEvents = $commander->gameEvents()
+            ->with(['reads' => function ($q) use ($commander) { $q->where('commander_id', $commander->id); }])
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get();
@@ -176,8 +187,9 @@ class ReportController extends Controller
     public function showGameEvent($id)
     {
         $commander = Auth::user()->commander;
-        $event = GameEvent::where('id', $id)
-            ->where('commander_id', $commander->id)
+        $event = $commander->gameEvents()
+            ->with(['reads' => function ($q) use ($commander) { $q->where('commander_id', $commander->id); }])
+            ->where('id', $id)
             ->firstOrFail();
         
         return view('game.reports.event', compact('event'));
@@ -230,12 +242,14 @@ class ReportController extends Controller
     public function markGameEventAsRead($id)
     {
         $commander = Auth::user()->commander;
-        $event = GameEvent::where('id', $id)
-            ->where('commander_id', $commander->id)
-            ->firstOrFail();
+        // Vérifier que l'événement concerne bien ce commandant
+        $event = $commander->gameEvents()->where('id', $id)->firstOrFail();
         
-        $event->is_read = true;
-        $event->save();
+        // Créer l'enregistrement de lecture si non existant
+        GameEventRead::firstOrCreate(
+            ['game_event_id' => $event->id, 'commander_id' => $commander->id],
+            ['read_at' => now()]
+        );
         
         return response()->json(['success' => true]);
     }
@@ -393,26 +407,48 @@ class ReportController extends Controller
     public function listGameEvents(Request $request)
     {
         $commander = Auth::user()->commander;
-        $query = $commander->gameEvents();
+        $query = $commander->gameEvents()
+            ->with(['reads' => function ($q) use ($commander) { $q->where('commander_id', $commander->id); }]);
         
         // Filtres
-        if ($request->has('unread') && $request->unread == 1) {
-            $query->where('is_read', false);
+        if ($request->has('unread') && (int) $request->unread === 1) {
+            $query->whereDoesntHave('reads', function ($q) use ($commander) {
+                $q->where('commander_id', $commander->id);
+            });
         }
         
         if ($request->has('importance')) {
-            $query->where('importance', '>=', $request->importance);
+            $threshold = (int) $request->importance;
+            $query->where(function ($q) use ($threshold) {
+                $q->where('event_data->importance', '>=', $threshold)
+                  ->orWhere(function ($q2) use ($threshold) {
+                      // Importance par défaut selon le type
+                      $types = [];
+                      if ($threshold <= 5 && $threshold > 4) { $types = ['space_combat']; }
+                      elseif ($threshold <= 4) { $types = ['space_combat', 'planet_colonization']; }
+                      // Seuils inférieurs: tous les types sont >= 2 par défaut
+                      if ($threshold <= 3) { $types = array_merge($types, ['technology_discovery', 'diplomatic_event']); }
+                      if ($threshold <= 2) { $types = array_merge($types, ['player_joined', 'player_left']); }
+                      if (!empty($types)) {
+                          $q2->whereIn('event_type', array_unique($types));
+                      } else {
+                          // Aucun type par défaut ne correspond à ce seuil
+                          $q2->whereRaw('1 = 0');
+                      }
+                  });
+            });
         }
         
         if ($request->has('type')) {
-            $query->where('type', $request->type);
+            $query->where('event_type', $request->type);
         }
         
         if ($request->has('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
-                $q->where('title', 'like', '%' . $search . '%')
-                  ->orWhere('description', 'like', '%' . $search . '%');
+                $q->where('event_data->title', 'like', '%' . $search . '%')
+                  ->orWhere('event_data->description', 'like', '%' . $search . '%')
+                  ->orWhere('event_type', 'like', '%' . $search . '%');
             });
         }
         
@@ -425,7 +461,8 @@ class ReportController extends Controller
         }
         
         // Tri
-        $sortField = $request->get('sort', 'created_at');
+        $requestedSort = $request->get('sort', 'created_at');
+        $sortField = $requestedSort === 'type' ? 'event_type' : 'created_at';
         $sortDirection = $request->get('direction', 'desc');
         $query->orderBy($sortField, $sortDirection);
         
@@ -434,12 +471,15 @@ class ReportController extends Controller
         // Statistiques pour la vue
         $stats = [
             'total' => $commander->gameEvents()->count(),
-            'unread' => $commander->gameEvents()->where('is_read', false)->count(),
-            'important' => $commander->gameEvents()->where('importance', '>=', 4)->count(),
+            'unread' => $commander->gameEvents()->whereDoesntHave('reads', function ($q) use ($commander) { $q->where('commander_id', $commander->id); })->count(),
+            'important' => $commander->gameEvents()->where(function ($q) {
+                $q->where('event_data->importance', '>=', 4)
+                  ->orWhereIn('event_type', ['space_combat', 'planet_colonization']);
+            })->count(),
         ];
         
         // Types d'événements pour les filtres
-        $eventTypes = $commander->gameEvents()->select('type')->distinct()->pluck('type');
+        $eventTypes = $commander->gameEvents()->select('event_type')->distinct()->pluck('event_type');
         
         return view('game.reports.events', compact('events', 'stats', 'eventTypes'));
     }
@@ -506,7 +546,20 @@ class ReportController extends Controller
         $commander = Auth::user()->commander;
         
         try {
-            $commander->gameEvents()->where('is_read', false)->update(['is_read' => true]);
+            $eventIds = $commander->gameEvents()->pluck('id');
+            if ($eventIds->isNotEmpty()) {
+                $now = now();
+                $rows = $eventIds->map(function ($id) use ($commander, $now) {
+                    return [
+                        'game_event_id' => $id,
+                        'commander_id' => $commander->id,
+                        'read_at' => $now,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                })->toArray();
+                DB::table('game_event_reads')->insertOrIgnore($rows);
+            }
             
             return response()->json([
                 'success' => true,

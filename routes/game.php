@@ -55,6 +55,7 @@ Route::prefix('orders')->name('orders.')->group(function () {
 });
 
 // Routes pour les rapports
+Route::get('/reports', [ReportController::class, 'index'])->name('reports');
 Route::prefix('reports')->name('reports.')->group(function () {
     // Hub central des rapports
     Route::get('/', [ReportController::class, 'index'])->name('index');
