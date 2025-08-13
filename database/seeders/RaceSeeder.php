@@ -128,7 +128,7 @@ class RaceSeeder extends Seeder
                         'gravity' => [10, 35],
                     ],
                     'atmosphere_modifiers' => [2, 1, 0, 1, 2],
-                    'ui' => ['color' => '#7CFC000'],
+                    'ui' => ['color' => '#7CFC00'],
                     'selection_weight' => 1000,
                     'starting_tech_code' => null,
                 ],
