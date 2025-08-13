@@ -38,6 +38,7 @@ Route::get('/alliances', [GameController::class, 'alliances'])->name('alliances'
 Route::get('/alliance/{id}', [GameController::class, 'alliance'])->name('alliance');
 
 // Routes pour les ordres
+Route::get('/orders', [OrderController::class, 'index'])->name('orders');
 Route::prefix('orders')->name('orders.')->group(function () {
     // Liste des ordres
     Route::get('/', [OrderController::class, 'index'])->name('index');

@@ -33,6 +33,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/join', [EnrollmentController::class, 'requestJoin'])->name('join');
         Route::post('/leave', [EnrollmentController::class, 'requestLeave'])->name('leave');
     });
+    
+    // Routes du jeu (protégées par auth)
+    Route::prefix('game')->as('game.')->group(function () {
+        require __DIR__.'/game.php';
+    });
 });
 
 // Administration MJ (protégé par auth + gm)
