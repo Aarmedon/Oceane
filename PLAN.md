@@ -2,7 +2,7 @@
 
 Ce document décrit le plan d’action, les décisions validées, les jalons, et les impacts techniques. Il est conçu pour permettre de reprendre le développement même depuis une nouvelle conversation.
 
-Dernière mise à jour: 2025-08-12
+Dernière mise à jour: 2025-08-14
 
 ## Décisions clés (politiques et techniques)
 
@@ -16,6 +16,7 @@ Dernière mise à jour: 2025-08-12
 - [ ] Combat reports: conserver la source de vérité via `GameEvent`; ajouter plus tard un pivot `combat_report_recipients` pour suivi lu/non‑lu par commandant (alignement UI/Controller).
 - [ ] `Directive` modèle/table minimale ou simplification (à arbitrer plus tard).
 - [ ] Mode de stack: vérifier `config('oceane.fleet.stacking_mode')` et s’assurer que `FleetManager` gère les deux modes `stack_and_row` | `stack_only`.
+ - [x] Suivi lecture événements: pivot `game_event_reads` + modèle `GameEventRead`, routes Blade/JS corrigées (listes/filtrage/marquer lu).
 
 ## Contexte du code actuel (snapshot)
 
@@ -39,6 +40,26 @@ Dernière mise à jour: 2025-08-12
 ## Phase 1 — Inscriptions / Désinscriptions (PRIORITÉ)
 
 Objectif: un joueur connecté peut demander à rejoindre; traitement au prochain tour. Désinscriptions idem (joueur ou MJ).
+
+Statut: TERMINÉ.
+
+Livré:
+- Migrations: `game_state.next_turn_at`, `game_enrollments`.
+- Modèle: `App\Models\GameEnrollment`.
+- Service: `App\Services\EnrollmentManager` (join/leave/block/process + neutral_takeover).
+- Intégration: `EnrollmentManager::processPending()` appelé depuis `GameCycleManager::executeTurn()` sous verrou.
+- Config: `config/oceane.php` (flags d’inscription, freeze window, leave_policy, etc.).
+- UI Joueur: formulaires Join/Leave sur le dashboard Inertia `resources/js/Pages/Dashboard.vue` (avec validations et messages d’état).
+- UI MJ: liste des demandes + actions blocage/déblocage.
+- Tests: features d’inscription (join/leave/block/unblock, neutral transfer). Attention: toujours fournir `race_id`; utiliser `RaceSeeder`.
+- Suivi lecture événements: routes/views/JS synchronisés, modèle `GameEventRead` ajouté, pivot `game_event_reads` validé.
+- Navigation: bouton “Accéder au jeu” ajouté sur le dashboard utilisateur (Inertia) vers `route('game.dashboard')`.
+- Seeds: `RaceSeeder` remis aux races d’origine (noms, couleurs, poids, bonus, atmosphère, code départ).
+
+À vérifier/ajuster rapidement:
+- Certaines migrations utilisant `information_schema` doivent être contournées sous SQLite (tests).
+- Vérifier la cohérence route/méthode pour l’accès système stellaire (ex: nom de route `game.star_system` vs méthode du contrôleur).
+- Exécuter `php artisan db:seed --class=RaceSeeder` si nécessaire en local/tests.
 
 ### Règles métier
 
@@ -185,6 +206,9 @@ Objectif: un joueur connecté peut demander à rejoindre; traitement au prochain
   - `routes/web.php`, `routes/game.php`, `routes/console.php`
   - `config/oceane.php`
   - `resources/views/game/*`, `resources/views/admin/*`
+  - `resources/js/Pages/Dashboard.vue` (lien vers `/game`)
+  - `public/js/events.js` (AJAX marquer événement lu)
+  - `app/Models/GameEventRead.php` (pivot lectures d’événements)
 
 ---
 
@@ -198,6 +222,17 @@ Objectif: un joueur connecté peut demander à rejoindre; traitement au prochain
 
 # Prochaines étapes immédiates
 
-1) Initialiser le repo Git et créer une branche `feat/enrollment`.
-2) Implémenter Phase 1 (migrations + service + contrôleurs + vues + intégration tour + tests).
-3) Commit par étape (voir liste) et ouvrir PR.
+1) Phase 2 (carte + fog of war) — cadrage et base:
+   - Définir la logique de visibilité: scanners planétaires vs scanners de flotte; portée; agrégation par tour.
+   - Concevoir le modèle/DTO et les requêtes pour exposer: systèmes connus + voisins, flottes visibles, états planètes visibles.
+2) Backend:
+   - Endpoints/contrôleurs pour fournir la carte (JSON) par tour/commandeur.
+   - Optimiser avec eager‑loading et index nécessaires; prévoir caches par tour si utile.
+3) UI:
+   - Squelette “carte galaxie” (page unique) avec modales d’actions; vue MJ sans fog.
+   - Chargement incrémental des données par cases/secteurs si volumétrie élevée.
+4) Technique/Qualité:
+   - Protéger les migrations non compatibles SQLite (tests) et ajouter indexes.
+   - Vérifier/ajuster la route système stellaire et la méthode contrôleur correspondante.
+5) Seeds:
+   - S’assurer que `RaceSeeder` est exécuté; démarrer la préparation des seeds composants/bâtiments depuis le projet d’origine.
