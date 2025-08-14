@@ -23,6 +23,7 @@ Route::post('/create-commander', [GameController::class, 'storeCommander'])->nam
 
 // Carte galactique
 Route::get('/galaxy-map', [GameController::class, 'galaxyMap'])->name('galaxy_map');
+Route::get('/api/map', [GameController::class, 'mapApi'])->name('api.map');
 
 // Système stellaire
 Route::get('/star-system/{id}', [GameController::class, 'starSystem'])->name('star_system');

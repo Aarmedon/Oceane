@@ -16,6 +16,7 @@ use App\Models\GameState;
 use App\Services\CommandantManager;
 use App\Services\FleetManager;
 use App\Services\TechnologyManager;
+use App\Services\VisibilityService;
 use Illuminate\Support\Facades\Auth;
 
 class GameController extends Controller
@@ -208,6 +209,44 @@ class GameController extends Controller
             'starSystems',
             'fleets'
         ));
+    }
+
+    /**
+     * API: Retourner les données minimales de la carte galactique (JSON)
+     */
+    public function mapApi(Request $request, VisibilityService $visibilityService)
+    {
+        $user = Auth::user();
+        $commander = $user->commanders()->first();
+
+        if (!$commander) {
+            return response()->json(['error' => 'Commander not found'], 403);
+        }
+
+        // Déterminer la galaxie ciblée
+        $galaxyId = (int) $request->input('galaxy_id', 0);
+        if (!$galaxyId) {
+            $capitalSystem = StarSystem::find($commander->capital_system_id);
+            $galaxyId = $capitalSystem ? (int) $capitalSystem->sector->galaxy_id : 1;
+        }
+
+        // Déterminer le mode admin (autorisé seulement pour les MJ)
+        $gmEmails = (array) config('oceane.admin.gamemasters_emails', []);
+        $isGameMaster = in_array($user->email, $gmEmails, true);
+        $adminRequested = (bool) $request->boolean('admin', false);
+        $admin = $isGameMaster && $adminRequested;
+
+        $data = $visibilityService->buildMapData($commander, $galaxyId, $admin);
+        // Add commander info for consistent centering on frontend
+        $capSystem = StarSystem::find($commander->capital_system_id);
+        $data['commander'] = [
+            'id' => (int) $commander->id,
+            'capital_system_id' => (int) $commander->capital_system_id,
+            'capital_x' => $capSystem ? (int) $capSystem->position_x : null,
+            'capital_y' => $capSystem ? (int) $capSystem->position_y : null,
+        ];
+
+        return response()->json($data);
     }
     
     /**

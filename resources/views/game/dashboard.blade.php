@@ -101,10 +101,7 @@
                     <a href="{{ route('game.galaxy_map') }}" class="btn btn-dark btn-sm">Voir carte complète</a>
                 </div>
                 <div class="card-body">
-                    <div class="text-center">
-                        <p class="mb-2">Aperçu de votre territoire</p>
-                        <img src="{{ asset('images/map_preview.jpg') }}" alt="Carte stellaire" class="img-fluid rounded border border-secondary" style="max-height: 300px;">
-                    </div>
+                    @include('game.partials.galaxy_map_widget')
                     <div class="mt-3 d-flex justify-content-center">
                         <a href="{{ route('game.galaxy_map') }}" class="btn btn-primary me-2">
                             <i class="fas fa-globe"></i> Explorer la galaxie
