@@ -8,9 +8,16 @@ use App\Models\Planet;
 use App\Models\GameState;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Collection;
+use App\Services\EconomyManager;
 
 class TechnologyManager
 {
+    private EconomyManager $economyManager;
+
+    public function __construct(EconomyManager $economyManager)
+    {
+        $this->economyManager = $economyManager;
+    }
     /**
      * Vérifier si un commandant peut rechercher une technologie
      */
@@ -103,7 +110,15 @@ class TechnologyManager
             ], $researchData));
         }
         
-        Log::info("Commandant {$commander->name} a commencé la recherche de {$technology->name} niveau {$targetLevel}, complétion au tour {$researchData['research_completion_turn']}");
+        // Journaliser les détails des bonus de marchandises appliqués à la recherche (pour suivi économie)
+        $goodsBonuses = $this->economyManager->getActiveBonusesForCommander($commander);
+        $goodsResearchPercent = (int) ($goodsBonuses['research_percent'] ?? 0);
+        $goodsFactor = 1.0 / max(0.1, 1.0 + ($goodsResearchPercent / 100.0));
+
+        Log::info(
+            "Commandant {$commander->name} a commencé la recherche de {$technology->name} niveau {$targetLevel}, " .
+            "complétion au tour {$researchData['research_completion_turn']} (research_percent={$goodsResearchPercent}, goods_factor={$goodsFactor})"
+        );
         
         return [
             'technology' => $technology->name,
@@ -150,8 +165,14 @@ class TechnologyManager
                     ? 1 - ($commander->race->research_bonus / 100) 
                     : 1;
         
+        // Effet des bonus de marchandises sur la recherche (agrégés pour le commandant)
+        $goodsBonuses = $this->economyManager->getActiveBonusesForCommander($commander);
+        $researchPercent = (int) ($goodsBonuses['research_percent'] ?? 0); // % cumulé
+        // Interprétation fidèle: un bonus de X% augmente la vitesse -> le temps est divisé par (1 + X/100)
+        $goodsFactor = 1.0 / max(0.1, 1.0 + ($researchPercent / 100.0));
+
         // Calcul final
-        $researchTime = ceil($baseTime * $difficultyFactor * $levelFactor * $researchBonus * $raceBonus);
+        $researchTime = ceil($baseTime * $difficultyFactor * $levelFactor * $researchBonus * $raceBonus * $goodsFactor);
         
         // Temps minimum de recherche
         return max(1, $researchTime);

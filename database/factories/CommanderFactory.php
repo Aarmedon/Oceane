@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Commander;
 use App\Models\User;
+use App\Models\Race;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /** @extends Factory<\App\Models\Commander> */
@@ -16,8 +17,8 @@ class CommanderFactory extends Factory
         return [
             'user_id' => User::factory(),
             'name' => fake()->unique()->name().' '.fake()->randomElement(['I','II','III','IV']),
-            // race_id is set explicitly by seeders to avoid accidental Race creation
-            'race_id' => null,
+            // Ensure a valid race by default to satisfy NOT NULL constraint in tests
+            'race_id' => Race::factory(),
             'credits' => fake()->numberBetween(1000, 100000),
             'reputation' => fake()->numberBetween(-50, 100),
             'capital_system_id' => null,

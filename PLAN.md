@@ -2,7 +2,7 @@
 
 Ce document décrit le plan d’action, les décisions validées, les jalons, et les impacts techniques. Il est conçu pour permettre de reprendre le développement même depuis une nouvelle conversation.
 
-Dernière mise à jour: 2025-08-14
+Dernière mise à jour: 2025-08-17
 
 ## Décisions clés (politiques et techniques)
 
@@ -20,7 +20,7 @@ Dernière mise à jour: 2025-08-14
 
 ## Contexte du code actuel (snapshot)
 
-- Services: `FleetManager`, `CommandantManager`, `GameCycleManager`, `TechnologyManager`.
+- Services: `GameCycleManager`, `EconomyManager`, `PopulationStabilityManager`, `FleetManager`, `CommandantManager`, `TechnologyManager`.
 - Modèles: `Fleet`, `FleetShipStack`, `Ship`, `ShipDesign`, `GameEvent`, `Hero`, `StarSystem`, `Planet`, `Alliance`, etc.
 - UI/Admin: Console MJ, Fleet admin CRUD, vues de base côté joueur (dashboard, systèmes, rapports).
 - Concurrency: transactions + `lockForUpdate` sur entités critiques (flottes/ships/stacks/game_state).
@@ -180,7 +180,21 @@ Livré:
 
 ## Phase 9 — Marchandises
 
-- Production par tour, bonus de stock, consommation (liaison avec constructions).
+Statut: Partiellement livré (implémentation et tests en place; stabilisation à finaliser).
+
+Livré:
+- Migrations: `natural_goods`, `system_goods`, `populations`, ajout `stability` sur `star_systems`.
+- Seeders: `GoodsSeeder`, `BonusesSeeder`, `GoodsBonusSeeder` (appelés par `DatabaseSeeder`).
+- Services: `EconomyManager` (agrégation production `aggregateSystemProduction`, marché `resolveMarketTurn`), `PopulationStabilityManager` (application des bonus par système/planètes, clamp stabilité 0..100).
+- Intégration: appelés depuis `GameCycleManager::executeTurn()` après l’économie et avant budgets.
+- Tests: `tests/Unit/PopulationStabilityManagerTest.php` (mock EconomyManager, logs, clamp), `tests/Feature/PopulationStabilityIntegrationTest.php` (tour complet avec stocks ≥100 pour déclenchement des bonus).
+
+À faire:
+- Faire tourner la suite de tests et corriger toute lenteur liée aux migrations/seeders sous SQLite en mémoire.
+- Vérifier/ajuster l’arrondi des croissances de population (floor) et le clamp de stabilité [0..100].
+- Consolider le logging détaillé par système/planète (valeurs avant/après et pourcentages appliqués) et s’assurer que les assertions de logs sont stables.
+- Étendre la logique vers la consommation et le lien avec constructions (bâtiments/vaisseaux) dans les ordres.
+- Index/perf: index supplémentaires sur `system_goods (star_system_id, commander_id, good_id)` si volumétrie élevée (déjà unique), vérifier plans d’exécution.
 
 ---
 
@@ -221,6 +235,12 @@ Livré:
 ---
 
 # Prochaines étapes immédiates
+
+0) Stabiliser Marchandises & Population/Stabilité (prioritaire pour terminer la Phase 9):
+   - Exécuter: `composer test` ou `php artisan test` (SQLite en mémoire via `phpunit.xml`).
+   - Corriger lenteurs éventuelles (migrations/seeders incompatibles SQLite, éviter requêtes `information_schema`).
+   - Vérifier que `EconomyManager` applique bien les bonus à seuil de stock (≥100) et que `PopulationStabilityManager` met à jour populations et stabilité avec logs attendus.
+   - Documenter valeurs de bonus par marchandise dans `README.md` ou `docs/` (source: seeders).
 
 1) Phase 2 (carte + fog of war) — cadrage et base:
    - Définir la logique de visibilité: scanners planétaires vs scanners de flotte; portée; agrégation par tour.

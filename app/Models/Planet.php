@@ -64,4 +64,12 @@ class Planet extends Model
     {
         return $this->hasMany(PlanetaryProduction::class);
     }
+    
+    /**
+     * Get the natural goods produced by this planet
+     */
+    public function naturalGoods()
+    {
+        return $this->hasMany(NaturalGood::class);
+    }
 }

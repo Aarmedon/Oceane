@@ -24,6 +24,11 @@ class ReportController extends Controller
     public function index()
     {
         $commander = Auth::user()->commander;
+        if (!$commander) {
+            // L'utilisateur doit créer un commandant avant d'accéder aux rapports
+            return redirect()->route('game.create_commander')
+                ->with('warning', "Vous devez créer un commandant pour accéder aux rapports.");
+        }
         
         // Récupérer les statistiques des rapports
         $turnReportsCount = $commander->turnReports()->count();
@@ -145,6 +150,10 @@ class ReportController extends Controller
     public function showTurnReport($id)
     {
         $commander = Auth::user()->commander;
+        if (!$commander) {
+            return redirect()->route('game.create_commander')
+                ->with('warning', "Vous devez créer un commandant pour accéder aux rapports de tour.");
+        }
         $report = TurnReport::where('id', $id)
             ->where('commander_id', $commander->id)
             ->firstOrFail();
@@ -166,6 +175,10 @@ class ReportController extends Controller
     public function showCombatReport($id)
     {
         $commander = Auth::user()->commander;
+        if (!$commander) {
+            return redirect()->route('game.create_commander')
+                ->with('warning', "Vous devez créer un commandant pour accéder aux rapports de combat.");
+        }
         $report = CombatReport::where('id', $id)
             ->where('commander_id', $commander->id)
             ->firstOrFail();
@@ -187,6 +200,10 @@ class ReportController extends Controller
     public function showGameEvent($id)
     {
         $commander = Auth::user()->commander;
+        if (!$commander) {
+            return redirect()->route('game.create_commander')
+                ->with('warning', "Vous devez créer un commandant pour consulter les événements.");
+        }
         $event = $commander->gameEvents()
             ->with(['reads' => function ($q) use ($commander) { $q->where('commander_id', $commander->id); }])
             ->where('id', $id)
@@ -204,6 +221,12 @@ class ReportController extends Controller
     public function markTurnReportAsRead($id)
     {
         $commander = Auth::user()->commander;
+        if (!$commander) {
+            return response()->json([
+                'success' => false,
+                'message' => "Vous devez créer un commandant pour effectuer cette action."
+            ], 403);
+        }
         $report = TurnReport::where('id', $id)
             ->where('commander_id', $commander->id)
             ->firstOrFail();
@@ -223,6 +246,12 @@ class ReportController extends Controller
     public function markCombatReportAsRead($id)
     {
         $commander = Auth::user()->commander;
+        if (!$commander) {
+            return response()->json([
+                'success' => false,
+                'message' => "Vous devez créer un commandant pour effectuer cette action."
+            ], 403);
+        }
         $report = CombatReport::where('id', $id)
             ->where('commander_id', $commander->id)
             ->firstOrFail();
@@ -242,6 +271,12 @@ class ReportController extends Controller
     public function markGameEventAsRead($id)
     {
         $commander = Auth::user()->commander;
+        if (!$commander) {
+            return response()->json([
+                'success' => false,
+                'message' => "Vous devez créer un commandant pour effectuer cette action."
+            ], 403);
+        }
         // Vérifier que l'événement concerne bien ce commandant
         $event = $commander->gameEvents()->where('id', $id)->firstOrFail();
         
@@ -263,6 +298,10 @@ class ReportController extends Controller
     public function downloadTurnReport($id)
     {
         $commander = Auth::user()->commander;
+        if (!$commander) {
+            return redirect()->route('game.create_commander')
+                ->with('warning', "Vous devez créer un commandant pour télécharger ce rapport.");
+        }
         $report = TurnReport::where('id', $id)
             ->where('commander_id', $commander->id)
             ->firstOrFail();
@@ -286,6 +325,10 @@ class ReportController extends Controller
     public function downloadCombatReport($id)
     {
         $commander = Auth::user()->commander;
+        if (!$commander) {
+            return redirect()->route('game.create_commander')
+                ->with('warning', "Vous devez créer un commandant pour télécharger ce rapport.");
+        }
         $report = CombatReport::where('id', $id)
             ->where('commander_id', $commander->id)
             ->firstOrFail();
@@ -309,6 +352,10 @@ class ReportController extends Controller
     public function listTurnReports(Request $request)
     {
         $commander = Auth::user()->commander;
+        if (!$commander) {
+            return redirect()->route('game.create_commander')
+                ->with('warning', "Vous devez créer un commandant pour accéder aux rapports de tour.");
+        }
         $query = $commander->turnReports();
         
         // Filtres
@@ -353,6 +400,10 @@ class ReportController extends Controller
     public function listCombatReports(Request $request)
     {
         $commander = Auth::user()->commander;
+        if (!$commander) {
+            return redirect()->route('game.create_commander')
+                ->with('warning', "Vous devez créer un commandant pour accéder aux rapports de combat.");
+        }
         $query = $commander->combatReports();
         
         // Filtres
@@ -407,6 +458,10 @@ class ReportController extends Controller
     public function listGameEvents(Request $request)
     {
         $commander = Auth::user()->commander;
+        if (!$commander) {
+            return redirect()->route('game.create_commander')
+                ->with('warning', "Vous devez créer un commandant pour accéder aux événements.");
+        }
         $query = $commander->gameEvents()
             ->with(['reads' => function ($q) use ($commander) { $q->where('commander_id', $commander->id); }]);
         
@@ -492,6 +547,12 @@ class ReportController extends Controller
     public function markAllTurnReportsAsRead()
     {
         $commander = Auth::user()->commander;
+        if (!$commander) {
+            return response()->json([
+                'success' => false,
+                'message' => "Vous devez créer un commandant pour effectuer cette action."
+            ], 403);
+        }
         
         try {
             $commander->turnReports()->where('is_read', false)->update(['is_read' => true]);
@@ -518,6 +579,12 @@ class ReportController extends Controller
     public function markAllCombatReportsAsRead()
     {
         $commander = Auth::user()->commander;
+        if (!$commander) {
+            return response()->json([
+                'success' => false,
+                'message' => "Vous devez créer un commandant pour effectuer cette action."
+            ], 403);
+        }
         
         try {
             $commander->combatReports()->where('is_read', false)->update(['is_read' => true]);
@@ -544,6 +611,12 @@ class ReportController extends Controller
     public function markAllGameEventsAsRead()
     {
         $commander = Auth::user()->commander;
+        if (!$commander) {
+            return response()->json([
+                'success' => false,
+                'message' => "Vous devez créer un commandant pour effectuer cette action."
+            ], 403);
+        }
         
         try {
             $eventIds = $commander->gameEvents()->pluck('id');

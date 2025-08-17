@@ -21,7 +21,17 @@ class FleetFactory extends Factory
             'destination_system_id' => null,
             'position_x' => fake()->numberBetween(0, 1000),
             'position_y' => fake()->numberBetween(0, 1000),
-            'galaxy_id' => null, // will be backfilled in afterCreating if not set
+            // Derive galaxy from the current system's sector at creation time
+            'galaxy_id' => function (array $attributes) {
+                $sid = $attributes['current_system_id'] ?? null;
+                if ($sid) {
+                    $sys = StarSystem::find($sid);
+                    if ($sys && $sys->sector) {
+                        return $sys->sector->galaxy_id;
+                    }
+                }
+                return null;
+            },
             'status' => fake()->randomElement([
                 Fleet::STATUS_DOCKED,
                 Fleet::STATUS_MOVING,
@@ -38,16 +48,5 @@ class FleetFactory extends Factory
         ];
     }
 
-    /**
-     * Ensure galaxy_id coherence with current_system's sector after creation
-     */
-    public function configure()
-    {
-        return $this->afterCreating(function (Fleet $fleet) {
-            if (empty($fleet->galaxy_id) && $fleet->currentSystem && $fleet->currentSystem->sector) {
-                $fleet->galaxy_id = $fleet->currentSystem->sector->galaxy_id;
-                $fleet->save();
-            }
-        });
-    }
+    // No additional configuration hooks needed
 }

@@ -51,5 +51,12 @@
     @else
         <div class="alert alert-info">Vue d'index de l'univers (placeholder). Les vues détaillées seront ajoutées au fur et à mesure.</div>
     @endisset
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <h2 class="h5 mb-3"><i class="fas fa-globe"></i> Carte galactique (MJ)</h2>
+            @include('game.partials.galaxy_map_widget', ['admin' => true])
+        </div>
+    </div>
 </div>
 @endsection

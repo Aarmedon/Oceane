@@ -25,5 +25,12 @@ class DatabaseSeeder extends Seeder
 
         // Seed Game Master accounts from GAMEMASTERS env
         $this->call(CreateGameMasterUserSeeder::class);
+
+        // Core game data seeders
+        $this->call([
+            BonusesSeeder::class,
+            GoodsSeeder::class,
+            GoodsBonusSeeder::class,
+        ]);
     }
 }

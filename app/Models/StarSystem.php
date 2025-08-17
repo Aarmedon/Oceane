@@ -55,4 +55,12 @@ class StarSystem extends Model
     {
         return $this->hasMany(Fleet::class, 'current_system_id');
     }
+    
+    /**
+     * Get the per-commander goods state for this system
+     */
+    public function systemGoods()
+    {
+        return $this->hasMany(SystemGood::class);
+    }
 }

@@ -124,6 +124,14 @@ class Commander extends Model
     }
 
     /**
+     * Get the per-system goods states owned by this commander
+     */
+    public function systemGoods(): HasMany
+    {
+        return $this->hasMany(SystemGood::class);
+    }
+
+    /**
      * Query game events involving this commander via JSON filtering on involved_commanders.
      * Note: This returns a builder, not a traditional Eloquent relation, since there is no FK.
      */

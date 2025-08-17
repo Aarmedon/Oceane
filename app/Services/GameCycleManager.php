@@ -16,6 +16,8 @@ class GameCycleManager
     protected $commandantManager;
     protected $technologyManager;
     protected $enrollmentManager;
+    protected $economyManager;
+    protected $populationStabilityManager;
     protected $currentTurn;
 
     /**
@@ -25,12 +27,16 @@ class GameCycleManager
         FleetManager $fleetManager,
         CommandantManager $commandantManager,
         TechnologyManager $technologyManager,
-        EnrollmentManager $enrollmentManager
+        EnrollmentManager $enrollmentManager,
+        EconomyManager $economyManager,
+        PopulationStabilityManager $populationStabilityManager
     ) {
         $this->fleetManager = $fleetManager;
         $this->commandantManager = $commandantManager;
         $this->technologyManager = $technologyManager;
         $this->enrollmentManager = $enrollmentManager;
+        $this->economyManager = $economyManager;
+        $this->populationStabilityManager = $populationStabilityManager;
         // Charger l'état de jeu (tour courant) depuis la base
         $state = GameState::query()->first();
         if (!$state) {
@@ -70,7 +76,14 @@ class GameCycleManager
             
             // 3. Traitement des ordres planifiés pour ce tour
             $this->processScheduledOrders();
-            
+
+            // 3bis. Économie: agrégation production et résolution du marché (legacy)
+            $this->economyManager->aggregateSystemProduction($this->currentTurn);
+            $this->economyManager->resolveMarketTurn($this->currentTurn);
+
+            // 3ter. Population & stabilité: appliquer les bonus issus des marchandises actives
+            $this->populationStabilityManager->applyPopulationAndStabilityForTurn($this->currentTurn);
+
             // 4. Mise à jour des budgets pour tous les commandants
             $this->updateAllBudgets();
             

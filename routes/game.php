@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Game\OrderController;
 use App\Http\Controllers\Game\ReportController;
 use App\Http\Controllers\GameController;
+use Inertia\Inertia;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,10 +24,13 @@ Route::post('/create-commander', [GameController::class, 'storeCommander'])->nam
 
 // Carte galactique
 Route::get('/galaxy-map', [GameController::class, 'galaxyMap'])->name('galaxy_map');
+Route::get('/galaxy-map-vue', function () {
+    return Inertia::render('GalaxyMap');
+})->name('galaxy_map_vue');
 Route::get('/api/map', [GameController::class, 'mapApi'])->name('api.map');
 
 // Système stellaire
-Route::get('/star-system/{id}', [GameController::class, 'starSystem'])->name('star_system');
+Route::get('/star-system/{id}', [GameController::class, 'showStarSystem'])->name('star_system');
 
 // Technologies
 Route::get('/technologies', [GameController::class, 'technologies'])->name('technologies');

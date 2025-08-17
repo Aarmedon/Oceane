@@ -13,6 +13,12 @@ use Illuminate\Support\Facades\Log;
 
 class CommandantManager
 {
+    protected $economyManager;
+
+    public function __construct(EconomyManager $economyManager)
+    {
+        $this->economyManager = $economyManager;
+    }
     /**
      * Créer un nouveau commandant pour un utilisateur
      */
@@ -224,6 +230,19 @@ class CommandantManager
         // Formule de base pour les revenus: taxe * (nombre de planètes colonisées + 1)
         $colonizedPlanets = $system->planets->where('is_colonized', true)->count();
         $income = $system->tax_rate * 100 * ($colonizedPlanets + 1);
+
+        // Appliquer les bonus actifs liés aux marchandises (stock >= 100)
+        $bonuses = $this->economyManager->getActiveBonusesForSystem($system);
+        $percent = 0;
+        if (isset($bonuses['tax_revenue_percent'])) {
+            $percent += (int) $bonuses['tax_revenue_percent'];
+        }
+        if (isset($bonuses['system_revenue_percent'])) {
+            $percent += (int) $bonuses['system_revenue_percent'];
+        }
+        if ($percent !== 0) {
+            $income = (int) round($income * (1 + ($percent / 100)));
+        }
         
         return $income;
     }
@@ -250,13 +269,30 @@ class CommandantManager
     private function calculateFleetMaintenance(Commander $commander): int
     {
         $maintenance = 0;
-        
+
         $fleets = $commander->fleets;
-        foreach ($fleets as $fleet) {
-            $maintenance += $fleet->maintenance_cost;
+        // Grouper par système courant pour appliquer les bonus locaux
+        $grouped = $fleets->groupBy('current_system_id');
+        foreach ($grouped as $systemId => $group) {
+            $base = 0;
+            foreach ($group as $fleet) {
+                $base += (int) $fleet->maintenance_cost;
+            }
+            // Si aucun système (null), pas de bonus
+            if ($systemId) {
+                $system = StarSystem::find($systemId);
+                if ($system) {
+                    $bonuses = $this->economyManager->getActiveBonusesForSystem($system);
+                    $percent = (int) ($bonuses['fleet_maintenance_percent'] ?? 0);
+                    if ($percent !== 0) {
+                        $base = (int) round($base * (1 + ($percent / 100)));
+                    }
+                }
+            }
+            $maintenance += $base;
         }
-        
-        return $maintenance;
+
+        return (int) $maintenance;
     }
     
     /**
@@ -264,11 +300,19 @@ class CommandantManager
      */
     private function calculateSystemMaintenance(Commander $commander): int
     {
-        // Pour simplifier, on calcule un coût fixe par système possédé
-        $systemCount = $commander->starSystems->count();
-        $maintenance = $systemCount * config('oceane.system.maintenance_cost', 50);
-        
-        return $maintenance;
+        // Coût par système possédé, modifié par les bonus locaux
+        $maintenance = 0;
+        $baseCost = (int) config('oceane.system.maintenance_cost', 50);
+        foreach ($commander->starSystems as $system) {
+            $cost = $baseCost;
+            $bonuses = $this->economyManager->getActiveBonusesForSystem($system);
+            $percent = (int) ($bonuses['building_maintenance_percent'] ?? 0);
+            if ($percent !== 0) {
+                $cost = (int) round($cost * (1 + ($percent / 100)));
+            }
+            $maintenance += $cost;
+        }
+        return (int) $maintenance;
     }
     
     /**

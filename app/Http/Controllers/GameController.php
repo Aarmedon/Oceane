@@ -217,34 +217,58 @@ class GameController extends Controller
     public function mapApi(Request $request, VisibilityService $visibilityService)
     {
         $user = Auth::user();
-        $commander = $user->commanders()->first();
-
-        if (!$commander) {
-            return response()->json(['error' => 'Commander not found'], 403);
-        }
-
-        // Déterminer la galaxie ciblée
-        $galaxyId = (int) $request->input('galaxy_id', 0);
-        if (!$galaxyId) {
-            $capitalSystem = StarSystem::find($commander->capital_system_id);
-            $galaxyId = $capitalSystem ? (int) $capitalSystem->sector->galaxy_id : 1;
-        }
+        $baseCommander = $user->commanders()->first();
 
         // Déterminer le mode admin (autorisé seulement pour les MJ)
-        $gmEmails = (array) config('oceane.admin.gamemasters_emails', []);
-        $isGameMaster = in_array($user->email, $gmEmails, true);
+        $gmEmails = array_map('strtolower', (array) config('oceane.admin.gamemasters_emails', []));
+        $isGameMaster = (bool) ($user->is_admin ?? false) || in_array(strtolower((string) $user->email), $gmEmails, true);
         $adminRequested = (bool) $request->boolean('admin', false);
         $admin = $isGameMaster && $adminRequested;
 
-        $data = $visibilityService->buildMapData($commander, $galaxyId, $admin);
-        // Add commander info for consistent centering on frontend
-        $capSystem = StarSystem::find($commander->capital_system_id);
-        $data['commander'] = [
-            'id' => (int) $commander->id,
-            'capital_system_id' => (int) $commander->capital_system_id,
-            'capital_x' => $capSystem ? (int) $capSystem->position_x : null,
-            'capital_y' => $capSystem ? (int) $capSystem->position_y : null,
-        ];
+        // Sélection du commandant cible: par défaut celui de l'utilisateur; si MJ et as_commander_id fourni, voir "en tant que"
+        $commander = $baseCommander;
+        if ($admin && $request->filled('as_commander_id')) {
+            $asId = (int) $request->input('as_commander_id');
+            $asCommander = Commander::find($asId);
+            if ($asCommander) {
+                $commander = $asCommander;
+            }
+        }
+
+        if (!$commander && !$admin) {
+            return response()->json(['error' => 'Commander not found'], 403);
+        }
+
+        // Déterminer la galaxie ciblée (par défaut: galaxie de la capitale du commandant sélectionné)
+        $galaxyId = (int) $request->input('galaxy_id', 0);
+        if (!$galaxyId) {
+            if ($commander) {
+                $capitalSystem = StarSystem::find($commander->capital_system_id);
+                $galaxyId = $capitalSystem ? (int) $capitalSystem->sector->galaxy_id : 1;
+            } else {
+                // défaut pour MJ sans "en tant que": prendre la première galaxie existante
+                $firstGalaxyId = Galaxy::query()->orderBy('id')->value('id');
+                $galaxyId = $firstGalaxyId ? (int) $firstGalaxyId : 1;
+            }
+        }
+
+        // Si MJ sans "en tant que", afficher full map (admin=true). Si MJ "en tant que", afficher comme joueur (admin=false)
+        $renderAsAdmin = $admin && !$request->filled('as_commander_id');
+        
+        $data = $visibilityService->buildMapData($commander, $galaxyId, $renderAsAdmin);
+        // Infos commandant pour centrage côté front
+        if ($commander) {
+            $capSystem = StarSystem::find($commander->capital_system_id);
+            $data['commander'] = [
+                'id' => (int) $commander->id,
+                'user_id' => (int) $commander->user_id,
+                'capital_system_id' => (int) $commander->capital_system_id,
+                'capital_x' => $capSystem ? (int) $capSystem->position_x : null,
+                'capital_y' => $capSystem ? (int) $capSystem->position_y : null,
+            ];
+        } else {
+            $data['commander'] = null;
+        }
 
         return response()->json($data);
     }
@@ -413,50 +437,61 @@ class GameController extends Controller
         return view('game.fleets.show', compact('commander', 'fleet'));
     }
     
-    /**
-     * Afficher le formulaire de création d'une flotte
-     */
-    public function createFleetForm($systemId = null)
-    {
-        $commander = Auth::user()->commanders()->first();
+ 
+    
+ 
+    
+ 
+    
+/**
+ * Afficher le formulaire de création d'une flotte
+ */
+public function createFleetForm($systemId = null)
+{
+    $commander = Auth::user()->commanders()->first();
         
-        if (!$commander) {
-            return redirect()->route('game.create_commander');
-        }
-        
-        // Récupérer le système où créer la flotte
-        if ($systemId) {
-            $system = StarSystem::findOrFail($systemId);
-            
-            // Vérifier que le commandant possède le système ou a une flotte à cet endroit
-            $hasAccess = $system->commander_id == $commander->id || 
-                        Fleet::where('commander_id', $commander->id)
-                             ->where('current_system_id', $systemId)
-                             ->exists();
-                             
-            if (!$hasAccess) {
-                return redirect()->route('game.star_system', $systemId)
-                       ->with('error', 'Vous ne pouvez pas créer de flotte dans ce système.');
-            }
-        } else {
-            // Liste des systèmes où le joueur peut créer une flotte
-            $availableSystems = StarSystem::where('commander_id', $commander->id)
-                                         ->orWhereHas('fleets', function($query) use ($commander) {
-                                             $query->where('commander_id', $commander->id);
-                                         })
-                                         ->get();
-                                         
-            if ($availableSystems->isEmpty()) {
-                return redirect()->route('game.dashboard')
-                       ->with('error', 'Vous n\'avez aucun système où créer une flotte.');
-            }
-            
-            $system = null;
-            return view('game.fleets.create', compact('commander', 'system', 'availableSystems'));
-        }
-        
-        return view('game.fleets.create', compact('commander', 'system'));
+    if (!$commander) {
+        return redirect()->route('game.create_commander');
     }
+      
+      // Récupérer le système où créer la flotte
+      if ($systemId) {
+          $system = StarSystem::findOrFail($systemId);
+          
+          // Accès si le commandant possède AU MOINS une planète dans ce système ou a déjà une flotte sur place
+          $ownsPlanetHere = Planet::where('star_system_id', $systemId)
+                                  ->where('commander_id', $commander->id)
+                                  ->exists();
+          $hasFleetHere = Fleet::where('commander_id', $commander->id)
+                               ->where('current_system_id', $systemId)
+                               ->exists();
+          $hasAccess = $ownsPlanetHere || $hasFleetHere;
+          
+          if (!$hasAccess) {
+              return redirect()->route('game.star_system', $systemId)
+                     ->with('error', 'Vous ne pouvez pas créer de flotte dans ce système.');
+          }
+      } else {
+          // Liste des systèmes où le joueur peut créer une flotte
+          $availableSystems = StarSystem::whereHas('planets', function ($query) use ($commander) {
+                                       $query->where('commander_id', $commander->id);
+                                   })
+                                   ->orWhereHas('fleets', function($query) use ($commander) {
+                                       $query->where('commander_id', $commander->id);
+                                   })
+                                   ->get();
+                                   
+          if ($availableSystems->isEmpty()) {
+              return redirect()->route('game.dashboard')
+                     ->with('error', 'Vous n\'avez aucun système où créer une flotte.');
+          }
+          
+          $system = null;
+          return view('game.fleets.create', compact('commander', 'system', 'availableSystems'));
+      }
+      
+      return view('game.fleets.create', compact('commander', 'system'));
+  }
     
     /**
      * Créer une nouvelle flotte
@@ -476,6 +511,19 @@ class GameController extends Controller
         
         $system = StarSystem::findOrFail($request->system_id);
         
+        // Autorisation: le joueur doit posséder au moins une planète dans ce système ou avoir déjà une flotte sur place
+        $ownsPlanetHere = Planet::where('star_system_id', $system->id)
+                                ->where('commander_id', $commander->id)
+                                ->exists();
+        $hasFleetHere = Fleet::where('commander_id', $commander->id)
+                             ->where('current_system_id', $system->id)
+                             ->exists();
+
+        if (!$ownsPlanetHere && !$hasFleetHere) {
+            return back()->withInput()
+                   ->with('error', 'Vous ne pouvez pas créer de flotte dans ce système.');
+        }
+
         try {
             $fleet = $this->fleetManager->createFleet($commander, $system, $request->name);
             
