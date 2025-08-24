@@ -20,6 +20,7 @@ class TechnologyFactory extends Factory
             Technology::CATEGORY_BIOLOGY,
             Technology::CATEGORY_ECONOMY,
             Technology::CATEGORY_SPECIAL,
+            Technology::CATEGORY_SENSORS,
         ];
         $types = [
             Technology::TYPE_SIMPLE,

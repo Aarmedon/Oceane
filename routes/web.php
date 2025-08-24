@@ -62,6 +62,8 @@ Route::middleware(['auth', 'gm'])
         Route::post('fleets/{fleet}/composition/add', [FleetController::class, 'addComposition'])->name('fleets.composition.add');
         Route::post('fleets/{fleet}/composition/remove', [FleetController::class, 'removeComposition'])->name('fleets.composition.remove');
 
+        // Map Sprites UI removed
+
         // Inscriptions joueurs (MJ)
         Route::get('enrollments', [AdminEnrollmentController::class, 'index'])->name('enrollments.index');
         Route::post('enrollments/{enrollment}/block', [AdminEnrollmentController::class, 'block'])->name('enrollments.block');

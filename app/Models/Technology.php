@@ -30,6 +30,7 @@ class Technology extends Model
     const CATEGORY_BIOLOGY = 'biology';
     const CATEGORY_ECONOMY = 'economy';
     const CATEGORY_SPECIAL = 'special';
+    const CATEGORY_SENSORS = 'sensors';
     
     // Technology types
     const TYPE_SIMPLE = 'simple';

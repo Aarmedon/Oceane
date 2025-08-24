@@ -36,8 +36,8 @@ return [
 
     // Configuration des systèmes stellaires
     'system' => [
-        'min_planets' => 0,
-        'max_planets' => 8,
+        'min_planets' => 1,
+        'max_planets' => 20,
         'default_tax_rate' => 2,
         'maintenance_cost' => 50,
     ],
@@ -95,7 +95,8 @@ return [
     'commander' => [
         'starting_credits' => 1000,
         'starting_reputation' => 0,
-        'base_scan_range' => 10,
+        // Portée de scan de base (utilisée par la visibilité de la carte). Surchargable via .env
+        'base_scan_range' => (int) env('COMMANDER_BASE_SCAN_RANGE', 10),
     ],
 
     // Configuration des héros
@@ -155,6 +156,9 @@ return [
     // Configuration des technologies
     'technology' => [
         'base_research_time' => 3,
+        // Bonus de portée des capteurs par niveau de la technologie "sensors"
+        // (utilisé pour la visibilité de la carte)
+        'sensors_bonus_per_level' => 1,
     ],
 
     // Configuration des combats

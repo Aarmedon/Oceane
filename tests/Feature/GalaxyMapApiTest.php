@@ -10,6 +10,7 @@ use App\Models\Race;
 use App\Models\Sector;
 use App\Models\StarSystem;
 use App\Models\User;
+use App\Models\Technology;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
@@ -230,5 +231,147 @@ class GalaxyMapApiTest extends TestCase
         $this->assertContains($ownFleet->id, $fleetIds);
         $this->assertContains($enemyFleetVis->id, $fleetIds);
         $this->assertNotContains($enemyFleetInv->id, $fleetIds);
+    }
+
+    #[Test]
+    public function sensors_technology_increases_visibility_range(): void
+    {
+        // Explicit base scan and bonus per level for determinism
+        config()->set('oceane.commander.base_scan_range', 10);
+        config()->set('oceane.technology.sensors_bonus_per_level', 1);
+
+        // Galaxy and sector covering a large area
+        $galaxy = Galaxy::factory()->create(['size_x' => 1000, 'size_y' => 1000]);
+        $sector = Sector::factory()->create([
+            'galaxy_id' => $galaxy->id,
+            'position_x_start' => 0,
+            'position_y_start' => 0,
+            'position_x_end' => 1000,
+            'position_y_end' => 1000,
+        ]);
+
+        // Player capital/owned system as scan center
+        $ownSystem = StarSystem::factory()->create(['sector_id' => $sector->id, 'position_x' => 100, 'position_y' => 100]);
+
+        // Targets at distances 11 and 12 from (100,100)
+        $sys11 = StarSystem::factory()->create(['sector_id' => $sector->id, 'position_x' => 111, 'position_y' => 100]); // dist=11
+        $sys12 = StarSystem::factory()->create(['sector_id' => $sector->id, 'position_x' => 112, 'position_y' => 100]); // dist=12
+
+        // Player commander and ownership via planet on own system
+        $user = User::factory()->create();
+        $race = Race::factory()->create();
+        $player = Commander::factory()->create([
+            'user_id' => $user->id,
+            'race_id' => $race->id,
+            'capital_system_id' => $ownSystem->id,
+        ]);
+        Planet::factory()->create(['star_system_id' => $ownSystem->id, 'commander_id' => $player->id]);
+
+        // No sensors technology: sys11 and sys12 should be invisible
+        $resp0 = $this->actingAs($user)->getJson(route('game.api.map', [
+            'galaxy_id' => $galaxy->id,
+        ]));
+        $resp0->assertOk();
+        $ids0 = collect($resp0->json('systems'))->pluck('id')->all();
+        $this->assertNotContains($sys11->id, $ids0);
+        $this->assertNotContains($sys12->id, $ids0);
+
+        // Create 'sensors' technology and attach at level 1 => range becomes 11
+        $sensors = Technology::create([
+            'name' => 'Capteurs',
+            'description' => 'Améliore la portée de scan',
+            'category' => Technology::CATEGORY_SENSORS,
+            'base_research_cost' => 100,
+            'level_multiplier' => 1.5,
+            'max_level' => 10,
+            'prerequisite_technology_id' => null,
+            'prerequisite_level' => 1,
+            'image_path' => null,
+            'type' => Technology::TYPE_SIMPLE,
+        ]);
+        $player->technologies()->attach($sensors->id, ['level' => 1, 'research_progress' => 0, 'research_total' => 100]);
+
+        $resp1 = $this->actingAs($user)->getJson(route('game.api.map', [
+            'galaxy_id' => $galaxy->id,
+        ]));
+        $resp1->assertOk();
+        $ids1 = collect($resp1->json('systems'))->pluck('id')->all();
+        $this->assertContains($sys11->id, $ids1);
+        $this->assertNotContains($sys12->id, $ids1);
+
+        // Upgrade to level 2 => range becomes 12
+        $player->technologies()->updateExistingPivot($sensors->id, ['level' => 2]);
+        $resp2 = $this->actingAs($user)->getJson(route('game.api.map', [
+            'galaxy_id' => $galaxy->id,
+        ]));
+        $resp2->assertOk();
+        $ids2 = collect($resp2->json('systems'))->pluck('id')->all();
+        $this->assertContains($sys11->id, $ids2);
+        $this->assertContains($sys12->id, $ids2);
+    }
+
+    #[Test]
+    public function in_transit_enemy_fleets_visibility_respects_scan_range(): void
+    {
+        // Deterministic scan range
+        config()->set('oceane.commander.base_scan_range', 10);
+
+        // Galaxy and a sector covering positions used below
+        $galaxy = Galaxy::factory()->create(['size_x' => 1000, 'size_y' => 1000]);
+        $sector = Sector::factory()->create([
+            'galaxy_id' => $galaxy->id,
+            'position_x_start' => 0,
+            'position_y_start' => 0,
+            'position_x_end' => 1000,
+            'position_y_end' => 1000,
+        ]);
+
+        // Player owns a system at (100,100) -> scan center
+        $ownSystem = StarSystem::factory()->create(['sector_id' => $sector->id, 'position_x' => 100, 'position_y' => 100]);
+
+        $user = User::factory()->create();
+        $race = \App\Models\Race::factory()->create();
+        $player = Commander::factory()->create([
+            'user_id' => $user->id,
+            'race_id' => $race->id,
+            'capital_system_id' => $ownSystem->id,
+        ]);
+        Planet::factory()->create(['star_system_id' => $ownSystem->id, 'commander_id' => $player->id]);
+
+        // Enemy commander
+        $enemy = Commander::factory()->create();
+
+        // In-transit enemy fleet inside scan range: (108,100) -> dist=8 from (100,100)
+        $enemyInside = Fleet::factory()->create([
+            'commander_id' => $enemy->id,
+            'current_system_id' => null,
+            'destination_system_id' => null,
+            'position_x' => 108,
+            'position_y' => 100,
+            'galaxy_id' => $galaxy->id,
+            'status' => Fleet::STATUS_MOVING,
+        ]);
+
+        // In-transit enemy fleet outside scan range: (120,100) -> dist=20 from (100,100)
+        $enemyOutside = Fleet::factory()->create([
+            'commander_id' => $enemy->id,
+            'current_system_id' => null,
+            'destination_system_id' => null,
+            'position_x' => 120,
+            'position_y' => 100,
+            'galaxy_id' => $galaxy->id,
+            'status' => Fleet::STATUS_MOVING,
+        ]);
+
+        $resp = $this->actingAs($user)->getJson(route('game.api.map', [
+            'galaxy_id' => $galaxy->id,
+        ]));
+
+        $resp->assertOk();
+        $data = $resp->json();
+
+        $fleetIds = collect($data['fleets'])->pluck('id')->all();
+        $this->assertContains($enemyInside->id, $fleetIds, 'In-transit enemy fleet inside scan range should be visible');
+        $this->assertNotContains($enemyOutside->id, $fleetIds, 'In-transit enemy fleet outside scan range should be hidden');
     }
 }

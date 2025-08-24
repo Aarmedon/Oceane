@@ -18,6 +18,9 @@ use App\Services\FleetManager;
 use App\Services\TechnologyManager;
 use App\Services\VisibilityService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use App\Models\Technology;
 
 class GameController extends Controller
 {
@@ -219,11 +222,30 @@ class GameController extends Controller
         $user = Auth::user();
         $baseCommander = $user->commanders()->first();
 
+        // Debug logging toggle via query param ?debug=1 (disabled in production)
+        $debugParam = (bool) $request->boolean('debug', false);
+        $debug = !app()->environment('production') && $debugParam;
+        $reqId = (string) Str::uuid();
+        if ($debug) {
+            Log::info("[mapApi][{$reqId}] start", [
+                'user_id' => $user?->id,
+                'email' => $user?->email,
+                'params' => $request->only(['galaxy_id','admin','as_commander_id','debug']),
+            ]);
+        }
+
         // Déterminer le mode admin (autorisé seulement pour les MJ)
         $gmEmails = array_map('strtolower', (array) config('oceane.admin.gamemasters_emails', []));
         $isGameMaster = (bool) ($user->is_admin ?? false) || in_array(strtolower((string) $user->email), $gmEmails, true);
         $adminRequested = (bool) $request->boolean('admin', false);
         $admin = $isGameMaster && $adminRequested;
+        if ($debug) {
+            Log::info("[mapApi][{$reqId}] auth", [
+                'is_gm' => $isGameMaster,
+                'admin_requested' => $adminRequested,
+                'admin_effective' => $admin,
+            ]);
+        }
 
         // Sélection du commandant cible: par défaut celui de l'utilisateur; si MJ et as_commander_id fourni, voir "en tant que"
         $commander = $baseCommander;
@@ -234,13 +256,26 @@ class GameController extends Controller
                 $commander = $asCommander;
             }
         }
+        if ($debug) {
+            Log::info("[mapApi][{$reqId}] commander", [
+                'base_commander_id' => $baseCommander?->id,
+                'selected_commander_id' => $commander?->id,
+                'selected_commander_name' => $commander?->name,
+            ]);
+        }
 
         if (!$commander && !$admin) {
+            if ($debug) {
+                Log::warning("[mapApi][{$reqId}] abort: no commander and not admin");
+            }
             return response()->json(['error' => 'Commander not found'], 403);
         }
 
         // Déterminer la galaxie ciblée (par défaut: galaxie de la capitale du commandant sélectionné)
         $galaxyId = (int) $request->input('galaxy_id', 0);
+        if ($debug) {
+            Log::info("[mapApi][{$reqId}] input_galaxy_id", ['galaxy_id_param' => $galaxyId]);
+        }
         if (!$galaxyId) {
             if ($commander) {
                 $capitalSystem = StarSystem::find($commander->capital_system_id);
@@ -251,11 +286,28 @@ class GameController extends Controller
                 $galaxyId = $firstGalaxyId ? (int) $firstGalaxyId : 1;
             }
         }
+        if ($debug) {
+            Log::info("[mapApi][{$reqId}] resolved_galaxy_id", ['galaxy_id' => $galaxyId]);
+        }
 
         // Si MJ sans "en tant que", afficher full map (admin=true). Si MJ "en tant que", afficher comme joueur (admin=false)
         $renderAsAdmin = $admin && !$request->filled('as_commander_id');
         
+        $t0 = microtime(true);
         $data = $visibilityService->buildMapData($commander, $galaxyId, $renderAsAdmin);
+        $dt = microtime(true) - $t0;
+        if ($debug) {
+            $systemsCount = is_countable($data['systems'] ?? null) ? count($data['systems']) : 0;
+            $fleetsCount = is_countable($data['fleets'] ?? null) ? count($data['fleets']) : 0;
+            $sectorsCount = is_countable($data['sectors'] ?? null) ? count($data['sectors']) : 0;
+            Log::info("[mapApi][{$reqId}] built_data", [
+                'mode' => $data['mode'] ?? null,
+                'galaxy' => $data['galaxy'] ?? null,
+                'counts' => [ 'systems' => $systemsCount, 'fleets' => $fleetsCount, 'sectors' => $sectorsCount ],
+                'render_as_admin' => $renderAsAdmin,
+                'duration_ms' => (int) round($dt * 1000),
+            ]);
+        }
         // Infos commandant pour centrage côté front
         if ($commander) {
             $capSystem = StarSystem::find($commander->capital_system_id);
@@ -270,6 +322,9 @@ class GameController extends Controller
             $data['commander'] = null;
         }
 
+        if ($debug) {
+            Log::info("[mapApi][{$reqId}] end");
+        }
         return response()->json($data);
     }
     
@@ -331,15 +386,15 @@ class GameController extends Controller
         $scanPoints = $ownedSystems->merge($fleetSystems);
         
         // Portée de scan de base
-        $baseScanRange = config('oceane.commander.base_scan_range', 10);
-        
+        $baseScanRange = (int) config('oceane.commander.base_scan_range', 10);
+        $sensorsBonusPerLevel = (int) config('oceane.technology.sensors_bonus_per_level', 1);
+
         // Vérifier si une technologie améliore la portée de scan
         $scanTech = $commander->technologies()
-                             ->where('category', 'sensors')
+                             ->where('category', Technology::CATEGORY_SENSORS)
                              ->first();
-                             
-        $scanBonus = $scanTech ? $scanTech->pivot->level : 0;
-        $totalScanRange = $baseScanRange + $scanBonus;
+        $scanLevel = $scanTech ? (int) $scanTech->pivot->level : 0;
+        $totalScanRange = $baseScanRange + ($scanLevel * $sensorsBonusPerLevel);
         
         // Vérifier pour chaque point de scan si le système cible est à portée
         foreach ($scanPoints as $scanPoint) {

@@ -20,6 +20,7 @@ class Commander extends Model
         'capital_system_id',
         'description',
         'avatar_path',
+        'fleet_icon_path',
         'created_turn'
     ];
     

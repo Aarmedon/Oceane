@@ -2,7 +2,7 @@
 
 Ce document décrit le plan d’action, les décisions validées, les jalons, et les impacts techniques. Il est conçu pour permettre de reprendre le développement même depuis une nouvelle conversation.
 
-Dernière mise à jour: 2025-08-17
+Dernière mise à jour: 2025-08-18
 
 ## Décisions clés (politiques et techniques)
 
@@ -141,6 +141,15 @@ Livré:
 - Afficher: système de départ, voisins, flottes alliées/ennemies/neutres selon visibilité.
 - Configurer et optimiser les requêtes (eager‑loading, caches par tour si besoin).
 - MJ: carte complète, pas de fog.
+
+Statut: Partiellement livré (API JSON + tests passés; UI placeholder OK).
+
+Livré:
+- Service `App\Services\VisibilityService::buildMapData()` (filtrage visibilité, tailles flottes, galaxies visibles).
+- Endpoint `/game/api/map` via `GameController@mapApi` avec mode admin et impersonation.
+- Config: `oceane.commander.base_scan_range` surchargé via `.env`; `oceane.technology.sensors_bonus_per_level` appliqué.
+- Factory: `database/factories/FleetFactory.php` dérive `galaxy_id` du système courant.
+- Tests: `tests/Feature/GalaxyMapApiTest.php` — PASS (player/admin/impersonation).
 
 ## Phase 3 — Détails d’un système
 

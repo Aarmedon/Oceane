@@ -15,6 +15,7 @@ class StarSystem extends Model
         'position_x',
         'position_y',
         'star_type',
+        'map_icon_path',
         'is_controlled',
         'commander_id',
         'tax_rate',

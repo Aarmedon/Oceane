@@ -101,7 +101,9 @@
                     <a href="{{ route('game.galaxy_map') }}" class="btn btn-dark btn-sm">Voir carte complète</a>
                 </div>
                 <div class="card-body">
-                    @include('game.partials.galaxy_map_widget')
+                    <div class="alert alert-secondary bg-opacity-25 text-light mb-0">
+                        Aperçu rapide de la carte retiré. Utilisez le bouton « Voir carte complète » pour ouvrir la carte Vue 3.
+                    </div>
                     <div class="mt-3 d-flex justify-content-center">
                         <a href="{{ route('game.galaxy_map') }}" class="btn btn-primary me-2">
                             <i class="fas fa-globe"></i> Explorer la galaxie

@@ -55,7 +55,12 @@
     <div class="row mt-4">
         <div class="col-12">
             <h2 class="h5 mb-3"><i class="fas fa-globe"></i> Carte galactique (MJ)</h2>
-            @include('game.partials.galaxy_map_widget', ['admin' => true])
+            <div class="alert alert-secondary bg-opacity-25 text-light">
+                Le widget de carte legacy a été retiré. Utilisez la nouvelle carte Vue 3 pour la vue MJ.
+                <a href="{{ route('game.galaxy_map') }}?admin=1" class="btn btn-sm btn-outline-light ms-2">
+                    Ouvrir la carte Vue 3 (admin)
+                </a>
+            </div>
         </div>
     </div>
 </div>

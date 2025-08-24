@@ -31,6 +31,7 @@ class DatabaseSeeder extends Seeder
             BonusesSeeder::class,
             GoodsSeeder::class,
             GoodsBonusSeeder::class,
+            PlanetsFromSystemsSeeder::class,
         ]);
     }
 }
