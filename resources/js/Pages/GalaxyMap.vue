@@ -53,6 +53,60 @@ const useCellGrid = ref(false);
 const gridCols = ref(21); // desired number of columns across viewport (default 21)
 const gridDelta = ref(0.2); // tolerance to avoid a last half row
 
+// Debug: restrict logs to specific cells only
+// Accepts an array of [x,y], {x,y}, or "x,y" strings. Use window.GalaxyMapDebug.setCells(...)
+const debugCells = ref([]);
+const debugCellsSet = computed(() => new Set((debugCells.value || []).map((c) => {
+  if (Array.isArray(c) && c.length >= 2) return `${Math.floor(c[0])},${Math.floor(c[1])}`;
+  if (c && typeof c === 'object' && 'x' in c && 'y' in c) return `${Math.floor(c.x)},${Math.floor(c.y)}`;
+  if (typeof c === 'string') return c.trim();
+  return '';
+}).filter(Boolean)));
+function setDebugCells(cells) {
+  const out = [];
+  if (typeof cells === 'string') {
+    const parts = cells.split(/[;\|]/);
+    for (const p of parts) {
+      const [xs, ys] = p.split(',').map(s => s.trim());
+      const x = Number(xs); const y = Number(ys);
+      if (Number.isFinite(x) && Number.isFinite(y)) out.push([Math.floor(x), Math.floor(y)]);
+    }
+  } else if (Array.isArray(cells)) {
+    for (const it of cells) {
+      if (Array.isArray(it) && it.length >= 2) {
+        const x = Math.floor(it[0]); const y = Math.floor(it[1]);
+        if (Number.isFinite(x) && Number.isFinite(y)) out.push([x, y]);
+      } else if (it && typeof it === 'object' && 'x' in it && 'y' in it) {
+        const x = Math.floor(it.x); const y = Math.floor(it.y);
+        if (Number.isFinite(x) && Number.isFinite(y)) out.push([x, y]);
+      } else if (typeof it === 'string') {
+        const [xs, ys] = it.split(',').map(s => s.trim());
+        const x = Number(xs); const y = Number(ys);
+        if (Number.isFinite(x) && Number.isFinite(y)) out.push([Math.floor(x), Math.floor(y)]);
+      }
+    }
+  }
+  debugCells.value = out;
+  if (debug.value) {
+    nextTick(() => {
+      try { logAllSystemsBoxes('setCells'); } catch (e) { /* ignore */ }
+    });
+  }
+}
+onMounted(() => {
+  if (typeof window !== 'undefined') {
+    window.GalaxyMapDebug = window.GalaxyMapDebug || {};
+    window.GalaxyMapDebug.setCells = setDebugCells;
+    window.GalaxyMapDebug.clearCells = () => setDebugCells([]);
+  }
+});
+onBeforeUnmount(() => {
+  if (typeof window !== 'undefined' && window.GalaxyMapDebug) {
+    delete window.GalaxyMapDebug.setCells;
+    delete window.GalaxyMapDebug.clearCells;
+  }
+});
+
 function measureContainer() {
   if (!containerRef.value) return;
   const rect = containerRef.value.getBoundingClientRect();
@@ -244,8 +298,11 @@ function logSystemBox(el, s, reason = 'log') {
 }
 function logAllSystemsBoxes(reason = 'transform-change') {
   try {
+    const restrict = (debugCells.value || []).length > 0;
+    const set = debugCellsSet.value;
     let count = 0;
     for (const s of (systems.value || [])) {
+      if (restrict && !set.has(`${Math.floor(s.x)},${Math.floor(s.y)}`)) continue;
       const el = systemEls.get(s.id);
       if (el) {
         logSystemBox(el, s, reason);
@@ -282,6 +339,7 @@ function debugBadgeStyle() {
 // Re-log a sample of systems whenever transform changes while debugging
 watch([scale, translateX, translateY], () => {
   if (!debug.value) return;
+  if ((debugCells.value || []).length === 0) return;
   nextTick(() => logAllSystemsBoxes('transform-change'));
 });
 
@@ -367,6 +425,7 @@ function isCapitalSystem(s) {
   const c = capitalPos.value;
   return !!c && s && s.x === c.x && s.y === c.y;
 }
+
 
 // Compute sector rectangle in screen space ensuring positive width/height
 function sectorRect(sec) {
@@ -768,6 +827,111 @@ const visibleSystems = computed(() => {
   );
 });
 
+// Fog-of-war (screen-anchored): compute set of visible cells and rectangles for hidden areas
+const visibleCellsSet = computed(() => {
+  const set = new Set();
+  const vis = data.value?.visibility;
+  if (vis?.cells && Array.isArray(vis.cells)) {
+    for (const c of vis.cells) {
+      if (Array.isArray(c) && c.length >= 2) {
+        const x = Math.floor(c[0]);
+        const y = Math.floor(c[1]);
+        if (Number.isFinite(x) && Number.isFinite(y)) set.add(`${x},${y}`);
+      }
+    }
+  }
+  if (vis?.rects && Array.isArray(vis.rects)) {
+    const sx = Math.max(1, galaxy.value.size_x || 1);
+    const sy = Math.max(1, galaxy.value.size_y || 1);
+    for (const r of vis.rects) {
+      const x0 = Math.max(1, Math.floor(r?.x0 ?? NaN));
+      const y0 = Math.max(1, Math.floor(r?.y0 ?? NaN));
+      const x1 = Math.min(sx, Math.floor(r?.x1 ?? NaN));
+      const y1 = Math.min(sy, Math.floor(r?.y1 ?? NaN));
+      if (!Number.isFinite(x0) || !Number.isFinite(y0) || !Number.isFinite(x1) || !Number.isFinite(y1)) continue;
+      for (let x = x0; x <= x1; x++) {
+        for (let y = y0; y <= y1; y++) {
+          set.add(`${x},${y}`);
+        }
+      }
+    }
+  }
+  // Fallback: derive visibility from systems when backend provided none
+  if (set.size === 0) {
+    const all = systems.value || [];
+    const isAdmin = (mode.value === 'admin');
+    for (const s of all) {
+      const rel = s?.owner?.relation;
+      const sysVisible = isAdmin || s?.visible === true || rel === 'self';
+      if (!sysVisible) continue;
+      const x = Math.floor(s?.x ?? NaN);
+      const y = Math.floor(s?.y ?? NaN);
+      if (Number.isFinite(x) && Number.isFinite(y)) set.add(`${x},${y}`);
+    }
+  }
+  return set;
+});
+
+// Build fog rectangles in SCREEN space by grouping contiguous hidden cells per row
+const fogRectsScreen = computed(() => {
+  // No fog in admin mode
+  if (mode.value === 'admin') return [];
+  const w = containerSize.value.width || 0;
+  const h = containerSize.value.height || 0;
+  const sx = Math.max(1, galaxy.value.size_x || 1);
+  const sy = Math.max(1, galaxy.value.size_y || 1);
+  if (!w || !h || !sx || !sy) return [];
+
+  // Visible world window
+  const leftW = screenPxToWorldX(0);
+  const rightW = screenPxToWorldX(w);
+  const topW = screenPxToWorldY(0);
+  const bottomW = screenPxToWorldY(h);
+  const xMin = Math.max(1, Math.floor(Math.min(leftW, rightW)));
+  const xMax = Math.min(sx, Math.floor(Math.max(leftW, rightW)));
+  const yMin = Math.max(1, Math.floor(Math.min(topW, bottomW)));
+  const yMax = Math.min(sy, Math.floor(Math.max(topW, bottomW)));
+  if (!(xMax >= xMin) || !(yMax >= yMin)) return [];
+
+  const rects = [];
+  const vis = visibleCellsSet.value;
+  for (let y = yMin; y <= yMax; y++) {
+    let runStart = null;
+    for (let x = xMin; x <= xMax; x++) {
+      const isVisible = vis.has(`${x},${y}`);
+      if (!isVisible) {
+        if (runStart == null) runStart = x;
+      } else if (runStart != null) {
+        // close run [runStart..x-1]
+        const l = worldXToScreenPx(runStart);
+        const r = worldXToScreenPx(x);
+        const t = worldYToScreenPx(y);
+        const b = worldYToScreenPx(y + 1);
+        rects.push({ left: Math.min(l, r), top: Math.min(t, b), width: Math.max(0, Math.abs(r - l)), height: Math.max(0, Math.abs(b - t)) });
+        runStart = null;
+      }
+    }
+    if (runStart != null) {
+      const l = worldXToScreenPx(runStart);
+      const r = worldXToScreenPx(xMax + 1);
+      const t = worldYToScreenPx(y);
+      const b = worldYToScreenPx(y + 1);
+      rects.push({ left: Math.min(l, r), top: Math.min(t, b), width: Math.max(0, Math.abs(r - l)), height: Math.max(0, Math.abs(b - t)) });
+    }
+  }
+  return rects;
+});
+
+function fogRectScreenStyle(r) {
+  return {
+    left: r.left + 'px',
+    top: r.top + 'px',
+    width: r.width + 'px',
+    height: r.height + 'px',
+    backgroundColor: 'rgba(210, 210, 210, 0.28)'
+  };
+}
+
 function centerOnCoordinates(cx, cy) {
   const w = containerSize.value.width;
   const h = containerSize.value.height;
@@ -902,7 +1066,7 @@ async function fetchMap() {
       params.admin = 1;
       if (asCommanderId.value) params.as_commander_id = asCommanderId.value;
     }
-    if (!isProd && debug.value) params.debug = 1;
+    if (!isProd && debug.value) { params.debug = 1; }
     // Use v2 map API to get sprites and richer metadata
     const url = '/game/api/v2/map';
     dbg('fetchMap:start', { params });
@@ -929,7 +1093,7 @@ async function fetchMap() {
       centerOnCapital();
       hasCentered.value = true;
       dbg('fetchMap:finally', { containerRef: !!containerRef.value, size: containerSize.value, hasCentered: hasCentered.value });
-      if (debug.value) nextTick(() => logAllSystemsBoxes('after-center'));
+      if (debug.value) nextTick(() => { logAllSystemsBoxes('after-center'); });
     } else {
       dbg('fetchMap:finally:no-container-or-data', { hasData: !!data.value, hasContainer: !!containerRef.value, size: containerSize.value });
     }
@@ -1174,6 +1338,13 @@ watch(debug, (v) => { if (v) nextTick(() => logAllSystemsBoxes('debug:enabled'))
         <!-- Lignes horizontales -->
         <template v-for="y in viewportGrid.horizontal" :key="'gy-' + y">
           <div class="absolute bg-white/15" :style="{ left: '0', top: y + 'px', width: '100%', height: '1px' }"></div>
+        </template>
+      </div>
+
+      <!-- Fog of war (screen-anchored, below systems, above grid) -->
+      <div v-if="fogRectsScreen.length" class="absolute inset-0 z-12 pointer-events-none">
+        <template v-for="r in fogRectsScreen" :key="`${r.left}-${r.top}-${r.width}-${r.height}`">
+          <div class="absolute" :style="fogRectScreenStyle(r)"></div>
         </template>
       </div>
 

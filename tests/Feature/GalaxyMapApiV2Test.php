@@ -288,4 +288,176 @@ class GalaxyMapApiV2Test extends TestCase
         $fleetIds = collect($data['fleets'])->pluck('id')->all();
         $this->assertEqualsCanonicalizing([$ownBig->id], $fleetIds);
     }
+
+    #[Test]
+    public function visibility_block_is_present_for_player_and_null_for_admin_v2(): void
+    {
+        $galaxy = Galaxy::factory()->create(['size_x' => 1000, 'size_y' => 1000]);
+        $sector = Sector::factory()->create([
+            'galaxy_id' => $galaxy->id,
+            'position_x_start' => 0,
+            'position_y_start' => 0,
+            'position_x_end' => 1000,
+            'position_y_end' => 1000,
+        ]);
+
+        $cap = StarSystem::factory()->create(['sector_id' => $sector->id, 'position_x' => 100, 'position_y' => 100]);
+
+        $user = User::factory()->create();
+        $race = Race::factory()->create();
+        $player = Commander::factory()->create([
+            'user_id' => $user->id,
+            'race_id' => $race->id,
+            'capital_system_id' => $cap->id,
+        ]);
+        // Ensure at least one owned planet to match typical visibility setups
+        Planet::factory()->create(['star_system_id' => $cap->id, 'commander_id' => $player->id]);
+
+        // Player mode: visibility block should be present with non-empty cells and rects array
+        $resp = $this->actingAs($user)->getJson(route('game.api.v2.map', [
+            'galaxy_id' => $galaxy->id,
+        ]));
+        $resp->assertOk();
+        $data = $resp->json();
+        $this->assertEquals('player', $data['mode']);
+        $this->assertArrayHasKey('visibility', $data);
+        $this->assertIsArray($data['visibility']);
+        $this->assertArrayHasKey('cells', $data['visibility']);
+        $this->assertIsArray($data['visibility']['cells']);
+        $this->assertGreaterThan(0, count($data['visibility']['cells']));
+        $this->assertArrayHasKey('rects', $data['visibility']);
+        $this->assertIsArray($data['visibility']['rects']);
+
+        // Admin mode (no impersonation): visibility should be null
+        config()->set('oceane.admin.gamemasters_emails', ['gm@example.com']);
+        $gm = User::factory()->create(['email' => 'gm@example.com']);
+        $respAdmin = $this->actingAs($gm)->getJson(route('game.api.v2.map', [
+            'galaxy_id' => $galaxy->id,
+            'admin' => 1,
+        ]));
+        $respAdmin->assertOk();
+        $dataAdmin = $respAdmin->json();
+        $this->assertEquals('admin', $dataAdmin['mode']);
+        $this->assertNull($dataAdmin['visibility'] ?? null);
+    }
+
+    #[Test]
+    public function visibility_cells_form_square_chebyshev_v2(): void
+    {
+        // Use a small deterministic scan range
+        config()->set('oceane.commander.base_scan_range', 2);
+
+        $galaxy = Galaxy::factory()->create(['size_x' => 200, 'size_y' => 200]);
+        $sector = Sector::factory()->create([
+            'galaxy_id' => $galaxy->id,
+            'position_x_start' => 0,
+            'position_y_start' => 0,
+            'position_x_end' => 200,
+            'position_y_end' => 200,
+        ]);
+
+        $cx = 100; $cy = 100; $R = 2;
+        $cap = StarSystem::factory()->create(['sector_id' => $sector->id, 'position_x' => $cx, 'position_y' => $cy]);
+
+        $user = User::factory()->create();
+        $race = Race::factory()->create();
+        $player = Commander::factory()->create([
+            'user_id' => $user->id,
+            'race_id' => $race->id,
+            'capital_system_id' => $cap->id,
+        ]);
+        // Own a planet on capital to ensure scan center
+        Planet::factory()->create(['star_system_id' => $cap->id, 'commander_id' => $player->id]);
+
+        $resp = $this->actingAs($user)->getJson(route('game.api.v2.map', [
+            'galaxy_id' => $galaxy->id,
+        ]));
+        $resp->assertOk();
+        $data = $resp->json();
+
+        $this->assertEquals('player', $data['mode']);
+        $this->assertArrayHasKey('visibility', $data);
+        $cells = $data['visibility']['cells'] ?? [];
+        $this->assertGreaterThan(0, count($cells));
+
+        // Convert to a fast lookup set of "x,y"
+        $actualSet = [];
+        foreach ($cells as $c) {
+            $actualSet[$c[0] . ',' . $c[1]] = true;
+        }
+
+        // Expected Chebyshev square of side (2R+1)^2
+        $expectedSet = [];
+        for ($dy = -$R; $dy <= $R; $dy++) {
+            for ($dx = -$R; $dx <= $R; $dx++) {
+                $x = $cx + $dx; $y = $cy + $dy;
+                $expectedSet[$x . ',' . $y] = true;
+            }
+        }
+
+        $this->assertCount((2*$R + 1) * (2*$R + 1), $actualSet, 'cells count should match exact Chebyshev square');
+        // All expected cells are present
+        foreach ($expectedSet as $k => $_) {
+            $this->assertArrayHasKey($k, $actualSet, "missing expected cell $k");
+        }
+        // Outside cell (R+1 along x) should not be present
+        $outsideKey = ($cx + $R + 1) . ',' . $cy;
+        $this->assertArrayNotHasKey($outsideKey, $actualSet, 'outside cell should not be visible');
+
+        // Diagonal (cx+R, cy+R) MUST be present to confirm Chebyshev vs Euclidean
+        $diagKey = ($cx + $R) . ',' . ($cy + $R);
+        $this->assertArrayHasKey($diagKey, $actualSet, 'diagonal cell must be visible under Chebyshev');
+    }
+
+    #[Test]
+    public function in_transit_enemy_fleet_visibility_chebyshev_v2(): void
+    {
+        config()->set('oceane.commander.base_scan_range', 2);
+
+        $galaxy = Galaxy::factory()->create(['size_x' => 200, 'size_y' => 200]);
+        $sector = Sector::factory()->create([
+            'galaxy_id' => $galaxy->id,
+            'position_x_start' => 0,
+            'position_y_start' => 0,
+            'position_x_end' => 200,
+            'position_y_end' => 200,
+        ]);
+
+        $cx = 100; $cy = 100; $R = 2;
+        $cap = StarSystem::factory()->create(['sector_id' => $sector->id, 'position_x' => $cx, 'position_y' => $cy]);
+
+        $user = User::factory()->create();
+        $race = Race::factory()->create();
+        $player = Commander::factory()->create(['user_id' => $user->id, 'race_id' => $race->id, 'capital_system_id' => $cap->id]);
+        Planet::factory()->create(['star_system_id' => $cap->id, 'commander_id' => $player->id]);
+
+        $enemy = Commander::factory()->create();
+        // Enemy fleets in transit (no current_system_id): one inside scan, one outside
+        $f_in = Fleet::factory()->create([
+            'commander_id' => $enemy->id,
+            'current_system_id' => null,
+            'position_x' => $cx + $R,
+            'position_y' => $cy,
+            'galaxy_id' => $galaxy->id,
+            'status' => 'moving',
+        ]);
+        $f_out = Fleet::factory()->create([
+            'commander_id' => $enemy->id,
+            'current_system_id' => null,
+            'position_x' => $cx + $R + 1,
+            'position_y' => $cy,
+            'galaxy_id' => $galaxy->id,
+            'status' => 'moving',
+        ]);
+
+        $resp = $this->actingAs($user)->getJson(route('game.api.v2.map', [
+            'galaxy_id' => $galaxy->id,
+        ]));
+        $resp->assertOk();
+        $data = $resp->json();
+
+        $fleetIds = collect($data['fleets'])->pluck('id')->all();
+        $this->assertContains($f_in->id, $fleetIds, 'in-range transit fleet should be visible');
+        $this->assertNotContains($f_out->id, $fleetIds, 'out-of-range transit fleet should not be visible');
+    }
 }

@@ -268,6 +268,7 @@ class MapV2Controller extends Controller
             'visible_galaxies' => $v1['visible_galaxies'] ?? [],
             'sectors' => $v1['sectors'] ?? [],
             'commander' => $v1['commander'] ?? null,
+            'visibility' => $v1['visibility'] ?? null,
             'filters' => [
                 'systems_relations' => $filters['systems_rel'] ?? null,
                 'fleets_relations' => $filters['fleets_rel'] ?? null,

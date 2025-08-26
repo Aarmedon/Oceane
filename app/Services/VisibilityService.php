@@ -11,9 +11,12 @@ use App\Models\StarSystem;
 use App\Models\Planet;
 use App\Models\Technology;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
-
-
+/**
+ * Build minimal map data for a commander in a given galaxy.
+ * If $admin is true, returns full data without fog.
+ */
 class VisibilityService
 {
     /**
@@ -127,15 +130,16 @@ class VisibilityService
             }
         }
 
-        // Helper to test visibility by Euclidean distance
+        // Helper to test visibility by Chebyshev (axis-aligned square) distance
+        // A point (x,y) is within scan if max(|dx|, |dy|) <= scanRange for at least one center.
         $isWithinScan = function (int $x, int $y) use ($scanCenters, $scanRange): bool {
             if ($scanCenters->isEmpty()) {
                 return false;
             }
             foreach ($scanCenters as $c) {
-                $dx = $x - $c[0];
-                $dy = $y - $c[1];
-                if (sqrt($dx * $dx + $dy * $dy) <= $scanRange) {
+                $dx = abs($x - (int)$c[0]);
+                $dy = abs($y - (int)$c[1]);
+                if (max($dx, $dy) <= $scanRange) {
                     return true;
                 }
             }
@@ -192,6 +196,34 @@ class VisibilityService
         }
         $systemsForOutput = $systemsForOutput->unique('id')->values();
         $visibleSystemIds = $systemsForOutput->pluck('id')->all();
+
+        // Fog-of-war debug (pre-cells): only when explicitly requested
+        $fogDebug = false;
+        try {
+            $req = request();
+            if ($req) {
+                $fogDebug = (bool) ($req->boolean('fog_debug') || $req->boolean('debug'));
+            }
+        } catch (\Throwable $e) { /* ignore */ }
+        if ($fogDebug) {
+            $inScan451 = $isWithinScan(451, 636);
+            $inScan473 = $isWithinScan(473, 636);
+            $sys451 = $systemsForOutput->first(function ($s) { return (int)$s['x'] === 451 && (int)$s['y'] === 636; });
+            $sys473 = $systemsForOutput->first(function ($s) { return (int)$s['x'] === 473 && (int)$s['y'] === 636; });
+            Log::info('[Visibility][FogDebug] pre-cells', [
+                'admin' => $admin,
+                'commander_id' => $commander ? (int) $commander->id : null,
+                'galaxy_id' => $galaxyId,
+                'scanRange' => (int) $scanRange,
+                'scanCentersCount' => $scanCenters->count(),
+                'firstCenters' => $scanCenters->take(5)->map(fn($c) => [(int)$c[0], (int)$c[1]])->values()->all(),
+                'isWithinScan' => [ '451,636' => $inScan451, '473,636' => $inScan473 ],
+                'systems' => [
+                    '451,636' => $sys451 ? [ 'visible' => (bool)$sys451['visible'], 'owner' => $sys451['owner'] ] : null,
+                    '473,636' => $sys473 ? [ 'visible' => (bool)$sys473['visible'], 'owner' => $sys473['owner'] ] : null,
+                ],
+            ]);
+        }
 
         // Fleets: include all if admin, else include own + enemy fleets located in visible systems.
         $fleetsQuery = Fleet::query()->where('galaxy_id', $galaxyId)
@@ -283,6 +315,55 @@ class VisibilityService
                 'destination_system_id' => ($admin || $owned) ? $destId : null,
             ];
         })->values();
+
+        // Build explicit visibility coverage (cells) for fog-of-war consumers
+        // Cells are 1-based integer world coordinates within [1..size_x] x [1..size_y]
+        $visibilityCells = [];
+        if (!$admin) {
+            $sx = max(1, (int) $galaxy->size_x);
+            $sy = max(1, (int) $galaxy->size_y);
+            $set = [];
+            if ($scanCenters->isNotEmpty()) {
+                $R = (int) $scanRange;
+                foreach ($scanCenters as $c) {
+                    // Use integer truncation to anchor on the grid cell containing the center,
+                    // consistent with $isWithinScan above
+                    $cx = (int) $c[0];
+                    $cy = (int) $c[1];
+                    // Chebyshev square: iterate full square [-R..R] on both axes
+                    for ($dy = -$R; $dy <= $R; $dy++) {
+                        $y = $cy + $dy;
+                        if ($y < 1 || $y > $sy) continue;
+                        for ($dx = -$R; $dx <= $R; $dx++) {
+                            $x = $cx + $dx;
+                            if ($x < 1 || $x > $sx) continue;
+                            $set["$x,$y"] = [$x, $y];
+                        }
+                    }
+                }
+            }
+            // Always include cells containing visible systems as a safety net
+            foreach ($systemsForOutput as $s) {
+                if (!empty($s['visible'])) {
+                    $x = (int) $s['x'];
+                    $y = (int) $s['y'];
+                    if ($x >= 1 && $x <= $sx && $y >= 1 && $y <= $sy) {
+                        $set["$x,$y"] = [$x, $y];
+                    }
+                }
+            }
+            $visibilityCells = array_values($set);
+            if ($fogDebug) {
+                $has451 = isset($set['451,636']);
+                $has473 = isset($set['473,636']);
+                Log::info('[Visibility][FogDebug] cells', [
+                    'bounds' => [ 'sx' => $sx, 'sy' => $sy ],
+                    'scanRange' => (int) $scanRange,
+                    'cells_count' => count($visibilityCells),
+                    'includes' => [ '451,636' => $has451, '473,636' => $has473 ],
+                ]);
+            }
+        }
 
         // Compute visible galaxies for coordinates mode selector
         $visibleGalaxies = [];
@@ -385,6 +466,11 @@ class VisibilityService
             'sectors' => $sectors,
             // Optional commander info (for centering on capital)
             'commander' => $commanderInfo,
+            // Explicit visibility coverage for fog-of-war (only for player mode)
+            'visibility' => $admin ? null : [
+                'cells' => $visibilityCells,
+                'rects' => [],
+            ],
         ];
     }
 }
